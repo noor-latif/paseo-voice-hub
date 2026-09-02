@@ -102,7 +102,7 @@ function RowInfo({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <View style={{ position: 'relative' as const }}>
+    <View style={{ position: 'relative' as const, overflow: 'visible' as never }}>
       <Pressable
         onPress={() => setOpen((v) => !v)}
         onHoverIn={() => setOpen(true)}
@@ -133,8 +133,7 @@ function RowInfo({
           style={{
             position: 'absolute' as const,
             bottom: 24,
-            left: '50%' as unknown as number,
-            transform: [{ translateX: -110 }] as unknown as never,
+            left: 0,
             zIndex: 20,
             backgroundColor: colors.surface0,
             borderWidth: 1,
@@ -345,7 +344,9 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
           <Text style={s.sectionHeaderTitle}>Listen</Text>
         </View>
         <View style={sectionContent}>
-          <View style={s.card}>
+          <View
+            style={(languageOpen ? { ...s.card, overflow: 'visible' as const } : s.card) as never}
+          >
             <View
               style={{
                 paddingVertical: SPACING[4],
@@ -360,161 +361,180 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                   text="Forced for STT — keeps “refaktorera functionen” Swedish. Search any Whisper language."
                 />
               </View>
-              <Pressable
-                onPress={() => setLanguageOpen((v) => !v)}
-                style={{
-                  backgroundColor: colors.surface0,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: BORDER_RADIUS.lg,
-                  paddingHorizontal: SPACING[3],
-                  paddingVertical: SPACING[3],
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
+              <View
+                style={{ position: 'relative' as const, zIndex: 5, overflow: 'visible' as never }}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>
-                  <View style={{ width: ICON_SIZE.sm, alignItems: 'center' }}>
-                    <Text style={{ color: colors.foregroundMuted, fontSize: FONT_SIZE.sm }}>◐</Text>
-                  </View>
-                  <Text style={{ color: colors.foreground, fontSize: FONT_SIZE.base }}>
-                    {language} — {selectedLabel}
-                  </Text>
-                </View>
-                <Text style={{ color: colors.foregroundMuted, fontSize: FONT_SIZE.sm }}>▼</Text>
-              </Pressable>
-              {languageOpen && (
-                <View
+                <Pressable
+                  onPress={() => setLanguageOpen((v) => !v)}
                   style={{
                     backgroundColor: colors.surface0,
                     borderWidth: 1,
                     borderColor: colors.border,
                     borderRadius: BORDER_RADIUS.lg,
-                    overflow: 'hidden' as const,
-                    maxHeight: 280,
+                    paddingHorizontal: SPACING[3],
+                    paddingVertical: SPACING[3],
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                   }}
                 >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>
+                    <View style={{ width: ICON_SIZE.sm, alignItems: 'center' }}>
+                      <Text style={{ color: colors.foregroundMuted, fontSize: FONT_SIZE.sm }}>
+                        ◐
+                      </Text>
+                    </View>
+                    <Text style={{ color: colors.foreground, fontSize: FONT_SIZE.base }}>
+                      {language} — {selectedLabel}
+                    </Text>
+                  </View>
+                  <Text style={{ color: colors.foregroundMuted, fontSize: FONT_SIZE.sm }}>▼</Text>
+                </Pressable>
+                {languageOpen && (
                   <View
                     style={{
-                      flexDirection: 'row' as const,
-                      alignItems: 'center' as const,
-                      paddingHorizontal: SPACING[3],
-                      gap: SPACING[2],
-                      backgroundColor: colors.surface1,
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.border,
+                      position: 'absolute' as const,
+                      top: '100%' as unknown as number,
+                      left: 0,
+                      right: 0,
+                      marginTop: SPACING[1],
+                      zIndex: 10,
+                      backgroundColor: colors.surface0,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderRadius: BORDER_RADIUS.lg,
+                      overflow: 'hidden' as const,
+                      maxHeight: 280,
+                      shadowColor: '#000',
+                      shadowOpacity: 0.15,
+                      shadowRadius: 8,
+                      shadowOffset: { width: 0, height: 4 },
+                      elevation: 8,
                     }}
                   >
-                    <Text style={{ color: colors.foregroundMuted }}>⌕</Text>
-                    <TextInput
-                      value={languageFilter}
-                      onChangeText={setLanguageFilter}
-                      placeholder="Search language..."
-                      placeholderTextColor={colors.foregroundMuted}
-                      style={
-                        {
-                          flex: 1,
-                          paddingVertical: SPACING[3],
-                          color: colors.foreground,
-                          fontSize: FONT_SIZE.base,
-                        } as never
-                      }
-                      autoCapitalize="none"
-                      autoFocus
-                    />
-                  </View>
-                  <ScrollView
-                    style={{ maxHeight: 200 } as never}
-                    nestedScrollEnabled
-                    keyboardShouldPersistTaps="handled"
-                  >
-                    <View style={{ paddingVertical: SPACING[1] }}>
-                      {filtered.map((l) => {
-                        const active = language === l.code;
-                        return (
-                          <Pressable
-                            key={l.code}
-                            onPress={() => {
-                              setLanguage(l.code);
-                              setLanguageOpen(false);
-                              setLanguageFilter('');
-                            }}
-                            style={{
-                              flexDirection: 'row' as const,
-                              alignItems: 'center' as const,
-                              minHeight: 36,
-                              gap: SPACING[2],
-                              paddingHorizontal: SPACING[3],
-                              paddingVertical: SPACING[2],
-                              backgroundColor: active ? colors.surface1 : 'transparent',
-                            }}
-                          >
-                            <View
-                              style={{
-                                width: ICON_SIZE.sm,
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                            >
-                              <Text
-                                style={{
-                                  color: active ? colors.foreground : colors.foregroundMuted,
-                                  fontSize: FONT_SIZE.sm,
-                                }}
-                              >
-                                ◐
-                              </Text>
-                            </View>
-                            <View
-                              style={{
-                                flex: 1,
-                                flexDirection: 'row',
-                                alignItems: 'baseline',
-                                gap: SPACING[2],
-                              }}
-                            >
-                              <Text
-                                style={{
-                                  color: colors.foreground,
-                                  fontSize: FONT_SIZE.base,
-                                  flexShrink: 0,
-                                }}
-                              >
-                                {l.label}
-                              </Text>
-                              <Text
-                                style={{
-                                  color: colors.foregroundMuted,
-                                  fontSize: FONT_SIZE.sm,
-                                  flexShrink: 1,
-                                }}
-                                numberOfLines={1}
-                              >
-                                {l.code}
-                              </Text>
-                            </View>
-                            {active && (
-                              <Text style={{ color: colors.foreground, fontSize: FONT_SIZE.sm }}>
-                                ✓
-                              </Text>
-                            )}
-                          </Pressable>
-                        );
-                      })}
-                      {filtered.length === 0 && (
-                        <View
-                          style={{ paddingHorizontal: SPACING[3], paddingVertical: SPACING[2] }}
-                        >
-                          <Text style={{ color: colors.foregroundMuted, fontSize: FONT_SIZE.base }}>
-                            No results
-                          </Text>
-                        </View>
-                      )}
+                    <View
+                      style={{
+                        flexDirection: 'row' as const,
+                        alignItems: 'center' as const,
+                        paddingHorizontal: SPACING[3],
+                        gap: SPACING[2],
+                        backgroundColor: colors.surface1,
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.border,
+                      }}
+                    >
+                      <Text style={{ color: colors.foregroundMuted }}>⌕</Text>
+                      <TextInput
+                        value={languageFilter}
+                        onChangeText={setLanguageFilter}
+                        placeholder="Search language..."
+                        placeholderTextColor={colors.foregroundMuted}
+                        style={
+                          {
+                            flex: 1,
+                            paddingVertical: SPACING[3],
+                            color: colors.foreground,
+                            fontSize: FONT_SIZE.base,
+                          } as never
+                        }
+                        autoCapitalize="none"
+                        autoFocus
+                      />
                     </View>
-                  </ScrollView>
-                </View>
-              )}
+                    <ScrollView
+                      style={{ maxHeight: 200 } as never}
+                      nestedScrollEnabled
+                      keyboardShouldPersistTaps="handled"
+                    >
+                      <View style={{ paddingVertical: SPACING[1] }}>
+                        {filtered.map((l) => {
+                          const active = language === l.code;
+                          return (
+                            <Pressable
+                              key={l.code}
+                              onPress={() => {
+                                setLanguage(l.code);
+                                setLanguageOpen(false);
+                                setLanguageFilter('');
+                              }}
+                              style={{
+                                flexDirection: 'row' as const,
+                                alignItems: 'center' as const,
+                                minHeight: 36,
+                                gap: SPACING[2],
+                                paddingHorizontal: SPACING[3],
+                                paddingVertical: SPACING[2],
+                                backgroundColor: active ? colors.surface1 : 'transparent',
+                              }}
+                            >
+                              <View
+                                style={{
+                                  width: ICON_SIZE.sm,
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    color: active ? colors.foreground : colors.foregroundMuted,
+                                    fontSize: FONT_SIZE.sm,
+                                  }}
+                                >
+                                  ◐
+                                </Text>
+                              </View>
+                              <View
+                                style={{
+                                  flex: 1,
+                                  flexDirection: 'row',
+                                  alignItems: 'baseline',
+                                  gap: SPACING[2],
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    color: colors.foreground,
+                                    fontSize: FONT_SIZE.base,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {l.label}
+                                </Text>
+                                <Text
+                                  style={{
+                                    color: colors.foregroundMuted,
+                                    fontSize: FONT_SIZE.sm,
+                                    flexShrink: 1,
+                                  }}
+                                  numberOfLines={1}
+                                >
+                                  {l.code}
+                                </Text>
+                              </View>
+                              {active && (
+                                <Text style={{ color: colors.foreground, fontSize: FONT_SIZE.sm }}>
+                                  ✓
+                                </Text>
+                              )}
+                            </Pressable>
+                          );
+                        })}
+                        {filtered.length === 0 && (
+                          <View
+                            style={{ paddingHorizontal: SPACING[3], paddingVertical: SPACING[2] }}
+                          >
+                            <Text
+                              style={{ color: colors.foregroundMuted, fontSize: FONT_SIZE.base }}
+                            >
+                              No results
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
             </View>
             <View style={[row, s.rowBorder] as never}>
               <View style={s.rowContent}>
@@ -570,7 +590,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
           <Text style={s.sectionHeaderTitle}>Speak</Text>
         </View>
         <View style={sectionContent}>
-          <View style={s.card}>
+          <View style={(voiceOpen ? { ...s.card, overflow: 'visible' as const } : s.card) as never}>
             <View
               style={[row, { paddingVertical: SPACING[4], paddingHorizontal: SPACING[4] } as never]}
             >
@@ -631,7 +651,15 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                 </View>
               </View>
               {isGroq ? (
-                <View style={{ minWidth: 160, alignItems: 'flex-end' }}>
+                <View
+                  style={{
+                    position: 'relative' as const,
+                    zIndex: 5,
+                    minWidth: 160,
+                    alignItems: 'flex-end',
+                    overflow: 'visible' as never,
+                  }}
+                >
                   <Pressable
                     onPress={() => setVoiceOpen((v) => !v)}
                     style={{
@@ -660,6 +688,93 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                     </View>
                     <Text style={{ color: colors.foregroundMuted, fontSize: FONT_SIZE.sm }}>▼</Text>
                   </Pressable>
+                  {voiceOpen && (
+                    <View
+                      style={{
+                        position: 'absolute' as const,
+                        top: '100%' as unknown as number,
+                        left: 0,
+                        right: 0,
+                        marginTop: SPACING[1],
+                        zIndex: 10,
+                        backgroundColor: colors.surface0,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        borderRadius: BORDER_RADIUS.lg,
+                        overflow: 'hidden' as const,
+                        maxHeight: 280,
+                        shadowColor: '#000',
+                        shadowOpacity: 0.15,
+                        shadowRadius: 8,
+                        shadowOffset: { width: 0, height: 4 },
+                        elevation: 8,
+                      }}
+                    >
+                      <ScrollView
+                        style={{ maxHeight: 220 } as never}
+                        nestedScrollEnabled
+                        keyboardShouldPersistTaps="handled"
+                      >
+                        <View style={{ paddingVertical: SPACING[1] }}>
+                          {VOICES.map((v) => {
+                            const active = ttsVoice === v;
+                            return (
+                              <Pressable
+                                key={v}
+                                onPress={() => {
+                                  setTtsVoice(v);
+                                  setVoiceOpen(false);
+                                }}
+                                style={{
+                                  flexDirection: 'row' as const,
+                                  alignItems: 'center' as const,
+                                  minHeight: 36,
+                                  gap: SPACING[2],
+                                  paddingHorizontal: SPACING[3],
+                                  paddingVertical: SPACING[2],
+                                  backgroundColor: active ? colors.surface1 : 'transparent',
+                                }}
+                              >
+                                <View style={{ width: ICON_SIZE.sm, alignItems: 'center' }}>
+                                  <Text
+                                    style={{
+                                      color: active ? colors.foreground : colors.foregroundMuted,
+                                      fontSize: FONT_SIZE.sm,
+                                    }}
+                                  >
+                                    ◐
+                                  </Text>
+                                </View>
+                                <View style={{ flex: 1, flexDirection: 'row', gap: SPACING[2] }}>
+                                  <Text
+                                    style={{ color: colors.foreground, fontSize: FONT_SIZE.base }}
+                                  >
+                                    {v}
+                                  </Text>
+                                  <Text
+                                    style={{
+                                      color: colors.foregroundMuted,
+                                      fontSize: FONT_SIZE.sm,
+                                    }}
+                                    numberOfLines={1}
+                                  >
+                                    groq/orpheus-{v}
+                                  </Text>
+                                </View>
+                                {active && (
+                                  <Text
+                                    style={{ color: colors.foreground, fontSize: FONT_SIZE.sm }}
+                                  >
+                                    ✓
+                                  </Text>
+                                )}
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      </ScrollView>
+                    </View>
+                  )}
                 </View>
               ) : (
                 <TextInput
@@ -686,77 +801,6 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                 />
               )}
             </View>
-            {isGroq && voiceOpen && (
-              <View
-                style={{
-                  marginHorizontal: SPACING[4],
-                  marginBottom: SPACING[4],
-                  backgroundColor: colors.surface0,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: BORDER_RADIUS.lg,
-                  overflow: 'hidden' as const,
-                  maxHeight: 280,
-                }}
-              >
-                <ScrollView
-                  style={{ maxHeight: 220 } as never}
-                  nestedScrollEnabled
-                  keyboardShouldPersistTaps="handled"
-                >
-                  <View style={{ paddingVertical: SPACING[1] }}>
-                    {VOICES.map((v) => {
-                      const active = ttsVoice === v;
-                      return (
-                        <Pressable
-                          key={v}
-                          onPress={() => {
-                            setTtsVoice(v);
-                            setVoiceOpen(false);
-                          }}
-                          style={{
-                            flexDirection: 'row' as const,
-                            alignItems: 'center' as const,
-                            minHeight: 36,
-                            gap: SPACING[2],
-                            paddingHorizontal: SPACING[3],
-                            paddingVertical: SPACING[2],
-                            backgroundColor: active ? colors.surface1 : 'transparent',
-                          }}
-                        >
-                          <View style={{ width: ICON_SIZE.sm, alignItems: 'center' }}>
-                            <Text
-                              style={{
-                                color: active ? colors.foreground : colors.foregroundMuted,
-                                fontSize: FONT_SIZE.sm,
-                              }}
-                            >
-                              ◐
-                            </Text>
-                          </View>
-                          <View style={{ flex: 1, flexDirection: 'row', gap: SPACING[2] }}>
-                            <Text style={{ color: colors.foreground, fontSize: FONT_SIZE.base }}>
-                              {v}
-                            </Text>
-                            <Text
-                              style={{ color: colors.foregroundMuted, fontSize: FONT_SIZE.sm }}
-                              numberOfLines={1}
-                            >
-                              groq/orpheus-{v}
-                            </Text>
-                          </View>
-                          {active && (
-                            <Text style={{ color: colors.foreground, fontSize: FONT_SIZE.sm }}>
-                              ✓
-                            </Text>
-                          )}
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </ScrollView>
-              </View>
-            )}
           </View>
         </View>
       </View>
