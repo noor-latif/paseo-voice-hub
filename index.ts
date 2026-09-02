@@ -22,24 +22,31 @@ export default function contribute(plugin: PluginContext) {
     },
   });
 
-  plugin.handle(saveSettings, async ({ groqApiKey, language, sttModel, ttsModel, ttsVoice }) => {
-    const trimmed = groqApiKey?.trim();
-    if (trimmed && !trimmed.startsWith('gsk_'))
-      throw new Error('Groq key should start with gsk_ — get one at console.groq.com/keys');
-    const next: VoiceHubSettings = {
-      groqApiKey: trimmed || undefined,
-      language,
-      sttModel,
-      ttsModel,
-      ttsVoice,
-    };
-    await store.set(next);
-    const { changed } = await service.ensureDaemonSpeechConfig(next);
-    return { ...next, _daemonChanged: changed, _needsRestart: changed } as VoiceHubSettings & {
-      _daemonChanged: boolean;
-      _needsRestart: boolean;
-    };
-  });
+  plugin.handle(
+    saveSettings,
+    async ({ groqApiKey, provider, baseUrl, language, sttModel, ttsModel, ttsVoice }) => {
+      const trimmed = groqApiKey?.trim();
+      if (trimmed && provider === 'groq' && !trimmed.startsWith('gsk_'))
+        throw new Error('Groq key should start with gsk_ — get one at console.groq.com/keys');
+      if (provider === 'custom' && baseUrl && !baseUrl.startsWith('http'))
+        throw new Error('Base URL should start with http');
+      const next: VoiceHubSettings = {
+        groqApiKey: trimmed || undefined,
+        provider,
+        baseUrl: provider === 'custom' ? baseUrl?.trim() || undefined : undefined,
+        language,
+        sttModel,
+        ttsModel,
+        ttsVoice,
+      };
+      await store.set(next);
+      const { changed } = await service.ensureDaemonSpeechConfig(next);
+      return { ...next, _daemonChanged: changed, _needsRestart: changed } as VoiceHubSettings & {
+        _daemonChanged: boolean;
+        _needsRestart: boolean;
+      };
+    }
+  );
 
   plugin.handle(testVoice, async ({ text, voice }) => {
     const settings = await store.get();

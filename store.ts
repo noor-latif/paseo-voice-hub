@@ -6,6 +6,8 @@ import { VoiceHubSettingsSchema, type VoiceHubSettings } from './shared';
 const PLUGIN_ID = 'voice-hub';
 
 const DEFAULTS: VoiceHubSettings = {
+  provider: 'groq',
+  baseUrl: undefined,
   language: 'sv',
   sttModel: 'whisper-large-v3-turbo',
   ttsModel: 'tts-1',
@@ -64,6 +66,8 @@ export function createVoiceHubStore(): VoiceHubStore {
         const toSave: Record<string, unknown> = { ...validated };
         if (!toSave.groqApiKey || (toSave.groqApiKey as string).trim() === '')
           delete toSave.groqApiKey;
+        if (validated.provider === 'groq') delete toSave.baseUrl;
+        if (!toSave.baseUrl || (toSave.baseUrl as string).trim() === '') delete toSave.baseUrl;
         const path = filePath();
         await writeAtomic(path, JSON.stringify(toSave, null, 2) + '\n');
         return validated;

@@ -3,12 +3,12 @@ import { z } from 'zod';
 
 export const VoiceHubSettingsSchema = z.object({
   groqApiKey: z.string().trim().min(1).optional(),
+  provider: z.enum(['groq', 'custom']).default('groq'),
+  baseUrl: z.string().trim().optional(),
   language: z.string().trim().min(2).max(10).default('sv'),
-  sttModel: z
-    .enum(['whisper-large-v3-turbo', 'whisper-large-v3'])
-    .default('whisper-large-v3-turbo'),
-  ttsModel: z.enum(['tts-1', 'tts-1-hd']).default('tts-1'),
-  ttsVoice: z.enum(['autumn', 'diana', 'hannah', 'austin', 'daniel', 'troy']).default('troy'),
+  sttModel: z.string().trim().min(1).default('whisper-large-v3-turbo'),
+  ttsModel: z.string().trim().min(1).default('tts-1'),
+  ttsVoice: z.string().trim().min(1).default('troy'),
 });
 
 export type VoiceHubSettings = z.output<typeof VoiceHubSettingsSchema>;

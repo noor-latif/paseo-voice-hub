@@ -87,8 +87,14 @@ export function createVoiceHubService(): VoiceHubService {
         stt.apiKey = settings.groqApiKey;
         tts.apiKey = settings.groqApiKey;
       }
-      stt.baseUrl = 'https://api.groq.com/openai/v1';
-      tts.baseUrl = `http://127.0.0.1:${PROXY_PORT}/v1`;
+      if (settings.provider === 'custom' && settings.baseUrl) {
+        const base = settings.baseUrl.replace(/\/$/, '');
+        stt.baseUrl = base;
+        tts.baseUrl = base;
+      } else {
+        stt.baseUrl = 'https://api.groq.com/openai/v1';
+        tts.baseUrl = `http://127.0.0.1:${PROXY_PORT}/v1`;
+      }
       openai.stt = stt;
       openai.tts = tts;
       providers.openai = openai;
@@ -117,21 +123,24 @@ export function createVoiceHubService(): VoiceHubService {
       voice: string | undefined
     ): Promise<{ ok: boolean; bytes?: number; error?: string }> {
       const key = settings.groqApiKey ?? '';
-      if (!key) return { ok: false, error: 'No Groq API key saved — paste one first.' };
-      const v = normalizeVoice(voice ?? settings.ttsVoice);
-      const res = await fetch(`${GROQ_BASE}/audio/speech`, {
+      if (!key) return { ok: false, error: 'No API key saved — paste one first.' };
+      const isGroq = settings.provider !== 'custom';
+      const baseUrl = isGroq ? GROQ_BASE : (settings.baseUrl?.replace(/\/$/, '') ?? GROQ_BASE);
+      const model = isGroq ? 'canopylabs/orpheus-v1-english' : settings.ttsModel || 'tts-1';
+      const v = isGroq
+        ? normalizeVoice(voice ?? settings.ttsVoice)
+        : (voice ?? settings.ttsVoice ?? 'alloy');
+      const res = await fetch(`${baseUrl}/audio/speech`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'canopylabs/orpheus-v1-english',
-          input: text,
-          voice: v,
-          response_format: 'wav',
-        }),
+        body: JSON.stringify({ model, input: text, voice: v, response_format: 'wav' }),
       });
       if (!res.ok) {
         const t = await res.text();
-        return { ok: false, error: `Groq ${res.status}: ${t.slice(0, 300)}` };
+        return {
+          ok: false,
+          error: `${isGroq ? 'Groq' : 'Provider'} ${res.status}: ${t.slice(0, 300)}`,
+        };
       }
       const buf = await res.arrayBuffer();
       return { ok: true, bytes: buf.byteLength };
@@ -151,6 +160,7 @@ export function createVoiceHubService(): VoiceHubService {
               port: PROXY_PORT,
               hasKey: !!cur.groqApiKey,
               voice: cur.ttsVoice,
+              provider: cur.provider,
             })
           );
           return;
@@ -172,6 +182,15 @@ export function createVoiceHubService(): VoiceHubService {
               return;
             }
             const curSettings = await getSettings();
+            if (curSettings.provider === 'custom') {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(
+                JSON.stringify({
+                  error: { message: 'Proxy only for Groq — custom uses direct baseUrl' },
+                })
+              );
+              return;
+            }
             const key = curSettings.groqApiKey || keyFromSettings || '';
             if (!key) {
               res.writeHead(500, { 'Content-Type': 'application/json' });

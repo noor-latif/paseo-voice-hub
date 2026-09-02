@@ -43,16 +43,14 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
   const save = useRpc(saveSettings);
   const test = useRpc(testVoice);
   const [groqApiKey, setGroqApiKey] = useState('');
+  const [provider, setProvider] = useState<'groq' | 'custom'>('groq');
+  const [baseUrl, setBaseUrl] = useState('');
   const [language, setLanguage] = useState('sv');
   const [languageOpen, setLanguageOpen] = useState(false);
   const [languageFilter, setLanguageFilter] = useState('');
-  const [sttModel, setSttModel] = useState<'whisper-large-v3-turbo' | 'whisper-large-v3'>(
-    'whisper-large-v3-turbo'
-  );
-  const [ttsModel, setTtsModel] = useState<'tts-1' | 'tts-1-hd'>('tts-1');
-  const [ttsVoice, setTtsVoice] = useState<
-    'autumn' | 'diana' | 'hannah' | 'austin' | 'daniel' | 'troy'
-  >('troy');
+  const [sttModel, setSttModel] = useState('whisper-large-v3-turbo');
+  const [ttsModel, setTtsModel] = useState('tts-1');
+  const [ttsVoice, setTtsVoice] = useState('troy');
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   const filtered = LANGUAGES.filter(
@@ -80,6 +78,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
   };
   const muted = { color: colors.foregroundMuted, fontSize: 13, lineHeight: 18 };
   const label = { color: colors.foreground, fontWeight: '600' as const, fontSize: 14 };
+  const isGroq = provider === 'groq';
 
   return (
     <ScrollView
@@ -91,20 +90,20 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
       <View style={{ gap: 6 }}>
         <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700' }}>Voice Hub</Text>
         <Text style={muted}>
-          Paste free Groq key (console.groq.com/keys, gsk_…), Save — voice button works.
+          Paste Groq or OpenAI key, choose provider, Save — voice button works.
         </Text>
       </View>
 
       <View style={card}>
         <View style={row}>
-          <Text style={label}>Groq API key</Text>
+          <Text style={label}>API key</Text>
           <Text style={muted}>
-            Stored at ~/.paseo/plugins/voice-hub/settings.json, used for STT + proxy.
+            Groq gsk_… or OpenAI sk-… — stored at ~/.paseo/plugins/voice-hub/settings.json.
           </Text>
           <TextInput
             value={groqApiKey}
             onChangeText={setGroqApiKey}
-            placeholder="gsk_..."
+            placeholder="gsk_... or sk-..."
             placeholderTextColor={colors.foregroundMuted}
             secureTextEntry
             style={
@@ -125,10 +124,71 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
         </View>
 
         <View style={[row, rowBorder] as never}>
+          <Text style={label}>Provider</Text>
+          <Text style={muted}>
+            Groq = preconfigured Orpheus/Whisper Turbo with finetuning. Custom = any
+            OpenAI-compatible baseUrl + model IDs.
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {(['groq', 'custom'] as const).map((v) => (
+              <Pressable
+                key={v}
+                onPress={() => setProvider(v)}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: provider === v ? colors.accent : colors.border,
+                  backgroundColor: provider === v ? colors.accent : colors.surface0,
+                  alignItems: 'center',
+                }}
+              >
+                <Text
+                  style={{
+                    color: provider === v ? colors.accentForeground : colors.foreground,
+                    fontSize: 13,
+                    fontWeight: '500' as const,
+                  }}
+                >
+                  {v === 'groq' ? 'Groq' : 'Custom'}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {!isGroq && (
+          <View style={[row, rowBorder] as never}>
+            <Text style={label}>Base URL</Text>
+            <Text style={muted}>OpenAI-compatible endpoint, e.g. https://api.openai.com/v1</Text>
+            <TextInput
+              value={baseUrl}
+              onChangeText={setBaseUrl}
+              placeholder="https://api.openai.com/v1"
+              placeholderTextColor={colors.foregroundMuted}
+              style={
+                {
+                  backgroundColor: colors.surface0,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  color: colors.foreground,
+                  fontSize: 14,
+                } as never
+              }
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+        )}
+
+        <View style={[row, rowBorder] as never}>
           <Text style={label}>Language</Text>
           <Text style={muted}>
-            Forced for Groq STT — keeps “refaktorera functionen” Swedish. Searchable, supports all
-            Whisper languages.
+            Forced for STT — keeps “refaktorera functionen” Swedish. Supports all Whisper languages.
           </Text>
           <Pressable
             onPress={() => setLanguageOpen((v) => !v)}
@@ -214,98 +274,174 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
           )}
         </View>
 
-        <View style={[row, rowBorder] as never}>
-          <Text style={label}>STT model</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {(['whisper-large-v3-turbo', 'whisper-large-v3'] as const).map((v) => (
-              <Pressable
-                key={v}
-                onPress={() => setSttModel(v)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 10,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: sttModel === v ? colors.accent : colors.border,
-                  backgroundColor: sttModel === v ? colors.accent : colors.surface0,
-                  alignItems: 'center',
-                }}
-              >
-                <Text
-                  style={{
-                    color: sttModel === v ? colors.accentForeground : colors.foreground,
-                    fontSize: 13,
-                    fontWeight: '500' as const,
-                  }}
-                >
-                  {v === 'whisper-large-v3-turbo' ? 'Turbo' : 'Accurate'}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={muted}>Turbo is 8× faster on Groq, ~1% worse WER — agent fixes it.</Text>
-        </View>
-
-        <View style={[row, rowBorder] as never}>
-          <Text style={label}>TTS model</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {(['tts-1', 'tts-1-hd'] as const).map((v) => (
-              <Pressable
-                key={v}
-                onPress={() => setTtsModel(v)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 10,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: ttsModel === v ? colors.accent : colors.border,
-                  backgroundColor: ttsModel === v ? colors.accent : colors.surface0,
-                  alignItems: 'center',
-                }}
-              >
-                <Text
-                  style={{
-                    color: ttsModel === v ? colors.accentForeground : colors.foreground,
-                    fontSize: 13,
-                    fontWeight: '500' as const,
-                  }}
-                >
-                  {v}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        <View style={[row, rowBorder] as never}>
-          <Text style={label}>Voice</Text>
-          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' as never }}>
-            {(['troy', 'hannah', 'autumn', 'diana', 'austin', 'daniel'] as const).map((v) => (
-              <Pressable
-                key={v}
-                onPress={() => setTtsVoice(v)}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 20,
-                  borderWidth: 1,
-                  borderColor: ttsVoice === v ? colors.accent : colors.border,
-                  backgroundColor: ttsVoice === v ? colors.accent : colors.surface0,
-                }}
-              >
-                <Text
-                  style={{
-                    color: ttsVoice === v ? colors.accentForeground : colors.foreground,
-                    fontSize: 13,
-                  }}
-                >
-                  {v}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={muted}>Orpheus English voices via Groq proxy on 127.0.0.1:8789.</Text>
-        </View>
+        {isGroq ? (
+          <>
+            <View style={[row, rowBorder] as never}>
+              <Text style={label}>STT model</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {(['whisper-large-v3-turbo', 'whisper-large-v3'] as const).map((v) => (
+                  <Pressable
+                    key={v}
+                    onPress={() => setSttModel(v)}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 10,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: sttModel === v ? colors.accent : colors.border,
+                      backgroundColor: sttModel === v ? colors.accent : colors.surface0,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: sttModel === v ? colors.accentForeground : colors.foreground,
+                        fontSize: 13,
+                        fontWeight: '500' as const,
+                      }}
+                    >
+                      {v === 'whisper-large-v3-turbo' ? 'Turbo' : 'Accurate'}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+            <View style={[row, rowBorder] as never}>
+              <Text style={label}>TTS model</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {(['tts-1', 'tts-1-hd'] as const).map((v) => (
+                  <Pressable
+                    key={v}
+                    onPress={() => setTtsModel(v)}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 10,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: ttsModel === v ? colors.accent : colors.border,
+                      backgroundColor: ttsModel === v ? colors.accent : colors.surface0,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: ttsModel === v ? colors.accentForeground : colors.foreground,
+                        fontSize: 13,
+                        fontWeight: '500' as const,
+                      }}
+                    >
+                      {v}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+            <View style={[row, rowBorder] as never}>
+              <Text style={label}>Voice</Text>
+              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' as never }}>
+                {(['troy', 'hannah', 'autumn', 'diana', 'austin', 'daniel'] as const).map((v) => (
+                  <Pressable
+                    key={v}
+                    onPress={() => setTtsVoice(v)}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                      borderWidth: 1,
+                      borderColor: ttsVoice === v ? colors.accent : colors.border,
+                      backgroundColor: ttsVoice === v ? colors.accent : colors.surface0,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: ttsVoice === v ? colors.accentForeground : colors.foreground,
+                        fontSize: 13,
+                      }}
+                    >
+                      {v}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Text style={muted}>Orpheus English voices via Groq proxy on 127.0.0.1:8789.</Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={[row, rowBorder] as never}>
+              <Text style={label}>STT model ID</Text>
+              <Text style={muted}>e.g. whisper-1, gpt-4o-transcribe</Text>
+              <TextInput
+                value={sttModel}
+                onChangeText={setSttModel}
+                placeholder="whisper-1"
+                placeholderTextColor={colors.foregroundMuted}
+                style={
+                  {
+                    backgroundColor: colors.surface0,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    color: colors.foreground,
+                    fontSize: 14,
+                  } as never
+                }
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+            <View style={[row, rowBorder] as never}>
+              <Text style={label}>TTS model ID</Text>
+              <Text style={muted}>e.g. tts-1, gpt-4o-mini-tts</Text>
+              <TextInput
+                value={ttsModel}
+                onChangeText={setTtsModel}
+                placeholder="tts-1"
+                placeholderTextColor={colors.foregroundMuted}
+                style={
+                  {
+                    backgroundColor: colors.surface0,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    color: colors.foreground,
+                    fontSize: 14,
+                  } as never
+                }
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+            <View style={[row, rowBorder] as never}>
+              <Text style={label}>Voice</Text>
+              <Text style={muted}>e.g. alloy, nova, shimmer</Text>
+              <TextInput
+                value={ttsVoice}
+                onChangeText={setTtsVoice}
+                placeholder="alloy"
+                placeholderTextColor={colors.foregroundMuted}
+                style={
+                  {
+                    backgroundColor: colors.surface0,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    color: colors.foreground,
+                    fontSize: 14,
+                  } as never
+                }
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+          </>
+        )}
       </View>
 
       <View style={card}>
@@ -315,11 +451,15 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
               try {
                 const r = (await save({
                   groqApiKey,
+                  provider,
+                  baseUrl: provider === 'custom' ? baseUrl : undefined,
                   language,
                   sttModel,
                   ttsModel,
                   ttsVoice,
-                })) as unknown as { _daemonChanged?: boolean };
+                })) as unknown as {
+                  _daemonChanged?: boolean;
+                };
                 setMsg({
                   text: r._daemonChanged ? 'Saved! Restarting daemon… ready in 5s.' : 'Saved!',
                   ok: true,
@@ -352,7 +492,9 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                   voice: ttsVoice,
                 })) as { ok: boolean; bytes?: number; error?: string };
                 setMsg({
-                  text: r.ok ? `Voice OK ${r.bytes}b` : r.error || 'Voice failed',
+                  text: r.ok
+                    ? `Voice OK — ${r.bytes} bytes wav received. Try the Paseo voice button to hear it.`
+                    : r.error || 'Voice failed',
                   ok: !!r.ok,
                 });
               } catch (e) {
@@ -370,6 +512,10 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
           >
             <Text style={{ color: colors.foreground, fontWeight: '500' as const }}>Test voice</Text>
           </Pressable>
+          <Text style={muted}>
+            Tests TTS via {isGroq ? 'Groq Orpheus' : baseUrl || 'custom baseUrl'} — OK means wav
+            received, hear it with Paseo voice button.
+          </Text>
         </View>
         {msg && (
           <View
