@@ -38,6 +38,8 @@ const LANGUAGES: { code: string; label: string }[] = [
   { code: 'zh', label: 'Chinese' },
 ];
 
+const VOICES = ['troy', 'hannah', 'autumn', 'diana', 'austin', 'daniel'] as const;
+
 const SPACING = { 1: 4, 2: 8, 3: 12, 4: 16, 6: 24 } as const;
 const FONT_SIZE = { sm: 12, base: 14 } as const;
 const RADIUS = { md: 6, lg: 8, xl: 12 } as const;
@@ -51,7 +53,7 @@ function Segmented<T extends string>({
   options: { value: T; label: string }[];
   value: T;
   onValueChange: (v: T) => void;
-  colors: { foreground: string; foregroundMuted: string; surface2: string; border: string };
+  colors: { foreground: string; foregroundMuted: string; surface2: string };
 }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[1] }}>
@@ -74,7 +76,6 @@ function Segmented<T extends string>({
               style={{
                 color: selected ? colors.foreground : colors.foregroundMuted,
                 fontSize: FONT_SIZE.base,
-                fontWeight: 'normal' as const,
               }}
             >
               {opt.label}
@@ -82,6 +83,52 @@ function Segmented<T extends string>({
           </Pressable>
         );
       })}
+    </View>
+  );
+}
+
+function RowInfo({
+  text,
+  colors,
+}: {
+  text: string;
+  colors: { border: string; foregroundMuted: string; surface0: string; foreground: string };
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View>
+      <Pressable
+        onPress={() => setOpen((v) => !v)}
+        style={{
+          width: 16,
+          height: 16,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: colors.border,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Text style={{ color: colors.foregroundMuted, fontSize: 9, fontWeight: '600' as const }}>
+          i
+        </Text>
+      </Pressable>
+      {open && (
+        <View
+          style={{
+            marginTop: SPACING[2],
+            backgroundColor: colors.surface0,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: RADIUS.md,
+            padding: SPACING[2],
+          }}
+        >
+          <Text style={{ color: colors.foreground, fontSize: FONT_SIZE.sm, lineHeight: 16 }}>
+            {text}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -96,6 +143,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
   const [language, setLanguage] = useState('sv');
   const [languageOpen, setLanguageOpen] = useState(false);
   const [languageFilter, setLanguageFilter] = useState('');
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const [sttModel, setSttModel] = useState('whisper-large-v3-turbo');
   const [ttsModel, setTtsModel] = useState('tts-1');
   const [ttsVoice, setTtsVoice] = useState('troy');
@@ -137,22 +185,14 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
     paddingVertical: SPACING[4],
     paddingHorizontal: SPACING[4],
   };
-  const rowBorder = {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+  const rowBorder = { borderTopWidth: 1, borderTopColor: colors.border };
+  const rowContent = { flex: 1, marginRight: SPACING[3], gap: SPACING[1] };
+  const rowTitleRow = {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: SPACING[2],
   };
-  const rowContent = { flex: 1, marginRight: SPACING[3] };
-  const rowTitle = {
-    color: colors.foreground,
-    fontSize: FONT_SIZE.base,
-    fontWeight: 'normal' as const,
-  };
-  const rowHint = { color: colors.foregroundMuted, fontSize: FONT_SIZE.sm, marginTop: SPACING[1] };
-  const rowStack: Record<string, unknown> = {
-    paddingVertical: SPACING[4],
-    paddingHorizontal: SPACING[4],
-    gap: SPACING[3],
-  };
+  const rowTitle = { color: colors.foreground, fontSize: FONT_SIZE.base };
   const isGroq = provider === 'groq';
 
   return (
@@ -171,7 +211,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
       <View style={{ gap: SPACING[1] }}>
         <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700' }}>Voice Hub</Text>
         <Text style={{ color: colors.foregroundMuted, fontSize: FONT_SIZE.sm, lineHeight: 18 }}>
-          Paste Groq or OpenAI key, choose provider, Save — voice button works.
+          Paste key, choose provider, Save.
         </Text>
       </View>
 
@@ -181,9 +221,20 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
         </View>
         <View style={sectionContent}>
           <View style={card}>
-            <View style={rowStack}>
-              <Text style={rowTitle}>API key</Text>
-              <Text style={rowHint}>Stored at ~/.paseo/plugins/voice-hub/settings.json.</Text>
+            <View
+              style={{
+                paddingVertical: SPACING[4],
+                paddingHorizontal: SPACING[4],
+                gap: SPACING[3],
+              }}
+            >
+              <View style={rowTitleRow}>
+                <Text style={rowTitle}>API key</Text>
+                <RowInfo
+                  colors={colors as never}
+                  text="Stored at ~/.paseo/plugins/voice-hub/settings.json. Groq = gsk_..., OpenAI = sk-..."
+                />
+              </View>
               <TextInput
                 value={groqApiKey}
                 onChangeText={setGroqApiKey}
@@ -206,11 +257,15 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                 autoCorrect={false}
               />
             </View>
-
             <View style={[row, rowBorder] as never}>
-              <View style={rowContent}>
-                <Text style={rowTitle}>Provider</Text>
-                <Text style={rowHint}>Groq = Orpheus/Whisper Turbo. Custom = any OpenAI URL.</Text>
+              <View style={{ flex: 1, marginRight: SPACING[3] }}>
+                <View style={rowTitleRow}>
+                  <Text style={rowTitle}>Provider</Text>
+                  <RowInfo
+                    colors={colors as never}
+                    text="Groq = preconfigured Orpheus + Whisper Turbo via 127.0.0.1:8789. Custom = any OpenAI-compatible URL."
+                  />
+                </View>
               </View>
               <Segmented
                 colors={colors as never}
@@ -222,11 +277,19 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                 ]}
               />
             </View>
-
             {!isGroq && (
-              <View style={[rowStack, rowBorder] as never}>
+              <View
+                style={
+                  {
+                    paddingVertical: SPACING[4],
+                    paddingHorizontal: SPACING[4],
+                    gap: SPACING[3],
+                    borderTopWidth: 1,
+                    borderTopColor: colors.border,
+                  } as never
+                }
+              >
                 <Text style={rowTitle}>Base URL</Text>
-                <Text style={rowHint}>e.g. https://api.openai.com/v1</Text>
                 <TextInput
                   value={baseUrl}
                   onChangeText={setBaseUrl}
@@ -255,13 +318,24 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
 
       <View style={section}>
         <View style={sectionHeader}>
-          <Text style={sectionHeaderTitle}>Speech</Text>
+          <Text style={sectionHeaderTitle}>Listen</Text>
         </View>
         <View style={sectionContent}>
           <View style={card}>
-            <View style={rowStack}>
-              <Text style={rowTitle}>Language</Text>
-              <Text style={rowHint}>Forced for STT — keeps “refaktorera functionen” Swedish.</Text>
+            <View
+              style={{
+                paddingVertical: SPACING[4],
+                paddingHorizontal: SPACING[4],
+                gap: SPACING[3],
+              }}
+            >
+              <View style={rowTitleRow}>
+                <Text style={rowTitle}>Language</Text>
+                <RowInfo
+                  colors={colors as never}
+                  text="Forced for STT — keeps “refaktorera functionen” Swedish. Search any Whisper language."
+                />
+              </View>
               <Pressable
                 onPress={() => setLanguageOpen((v) => !v)}
                 style={{
@@ -347,167 +421,204 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                 </View>
               )}
             </View>
+            <View style={[row, rowBorder] as never}>
+              <View style={rowContent}>
+                <View style={rowTitleRow}>
+                  <Text style={rowTitle}>STT model</Text>
+                  <RowInfo
+                    colors={colors as never}
+                    text="Turbo is 8× faster on Groq, ~1% worse WER. Accurate is whisper-large-v3."
+                  />
+                </View>
+              </View>
+              {isGroq ? (
+                <Segmented
+                  colors={colors as never}
+                  value={sttModel as never}
+                  onValueChange={setSttModel as never}
+                  options={[
+                    { value: 'whisper-large-v3-turbo', label: 'Turbo' },
+                    { value: 'whisper-large-v3', label: 'Accurate' },
+                  ]}
+                />
+              ) : (
+                <TextInput
+                  value={sttModel}
+                  onChangeText={setSttModel}
+                  placeholder="whisper-1"
+                  placeholderTextColor={colors.foregroundMuted}
+                  style={
+                    {
+                      backgroundColor: colors.surface0,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderRadius: RADIUS.lg,
+                      paddingHorizontal: SPACING[3],
+                      paddingVertical: SPACING[2],
+                      color: colors.foreground,
+                      fontSize: FONT_SIZE.base,
+                      minWidth: 140,
+                      textAlign: 'right' as const,
+                    } as never
+                  }
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              )}
+            </View>
+          </View>
+        </View>
+      </View>
 
-            {isGroq ? (
-              <>
-                <View style={[row, rowBorder] as never}>
-                  <View style={rowContent}>
-                    <Text style={rowTitle}>STT model</Text>
-                    <Text style={rowHint}>Turbo 8× faster, ~1% worse WER.</Text>
-                  </View>
-                  <Segmented
+      <View style={section}>
+        <View style={sectionHeader}>
+          <Text style={sectionHeaderTitle}>Speak</Text>
+        </View>
+        <View style={sectionContent}>
+          <View style={card}>
+            <View
+              style={[row, { paddingVertical: SPACING[4], paddingHorizontal: SPACING[4] } as never]}
+            >
+              <View style={rowContent}>
+                <View style={rowTitleRow}>
+                  <Text style={rowTitle}>TTS model</Text>
+                  <RowInfo
                     colors={colors as never}
-                    value={sttModel as never}
-                    onValueChange={setSttModel as never}
-                    options={[
-                      { value: 'whisper-large-v3-turbo', label: 'Turbo' },
-                      { value: 'whisper-large-v3', label: 'Accurate' },
-                    ]}
+                    text={
+                      isGroq ? 'Groq Orpheus via proxy 127.0.0.1:8789.' : 'Custom TTS model ID.'
+                    }
                   />
                 </View>
-                <View style={[row, rowBorder] as never}>
-                  <View style={rowContent}>
-                    <Text style={rowTitle}>TTS model</Text>
-                    <Text style={rowHint}>Orpheus via Groq proxy 127.0.0.1:8789.</Text>
-                  </View>
-                  <Segmented
+              </View>
+              {isGroq ? (
+                <Segmented
+                  colors={colors as never}
+                  value={ttsModel as never}
+                  onValueChange={setTtsModel as never}
+                  options={[
+                    { value: 'tts-1', label: 'tts-1' },
+                    { value: 'tts-1-hd', label: 'tts-1-hd' },
+                  ]}
+                />
+              ) : (
+                <TextInput
+                  value={ttsModel}
+                  onChangeText={setTtsModel}
+                  placeholder="tts-1"
+                  placeholderTextColor={colors.foregroundMuted}
+                  style={
+                    {
+                      backgroundColor: colors.surface0,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderRadius: RADIUS.lg,
+                      paddingHorizontal: SPACING[3],
+                      paddingVertical: SPACING[2],
+                      color: colors.foreground,
+                      fontSize: FONT_SIZE.base,
+                      minWidth: 140,
+                      textAlign: 'right' as const,
+                    } as never
+                  }
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              )}
+            </View>
+            <View style={[row, rowBorder] as never}>
+              <View style={rowContent}>
+                <View style={rowTitleRow}>
+                  <Text style={rowTitle}>Voice</Text>
+                  <RowInfo
                     colors={colors as never}
-                    value={ttsModel as never}
-                    onValueChange={setTtsModel as never}
-                    options={[
-                      { value: 'tts-1', label: 'tts-1' },
-                      { value: 'tts-1-hd', label: 'tts-1-hd' },
-                    ]}
+                    text={isGroq ? 'English Orpheus voices.' : 'Voice ID, e.g. alloy.'}
                   />
                 </View>
-                <View style={[row, rowBorder] as never}>
-                  <View style={rowContent}>
-                    <Text style={rowTitle}>Voice</Text>
-                    <Text style={rowHint}>English Orpheus.</Text>
-                  </View>
-                  <View
+              </View>
+              {isGroq ? (
+                <View style={{ minWidth: 140 }}>
+                  <Pressable
+                    onPress={() => setVoiceOpen((v) => !v)}
                     style={{
+                      backgroundColor: colors.surface0,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderRadius: RADIUS.lg,
+                      paddingHorizontal: SPACING[3],
+                      paddingVertical: SPACING[2],
                       flexDirection: 'row',
-                      gap: SPACING[1],
-                      flexWrap: 'wrap' as never,
-                      justifyContent: 'flex-end',
-                      maxWidth: 240,
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      minWidth: 120,
                     }}
                   >
-                    {(['troy', 'hannah', 'autumn', 'diana', 'austin', 'daniel'] as const).map(
-                      (v) => {
-                        const sel = ttsVoice === v;
-                        return (
-                          <Pressable
-                            key={v}
-                            onPress={() => setTtsVoice(v)}
+                    <Text style={{ color: colors.foreground, fontSize: FONT_SIZE.base }}>
+                      {ttsVoice}
+                    </Text>
+                    <Text style={{ color: colors.foregroundMuted }}>{voiceOpen ? '▲' : '▼'}</Text>
+                  </Pressable>
+                  {voiceOpen && (
+                    <View
+                      style={{
+                        marginTop: SPACING[1],
+                        backgroundColor: colors.surface0,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        borderRadius: RADIUS.lg,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {VOICES.map((v) => (
+                        <Pressable
+                          key={v}
+                          onPress={() => {
+                            setTtsVoice(v);
+                            setVoiceOpen(false);
+                          }}
+                          style={{
+                            paddingHorizontal: SPACING[3],
+                            paddingVertical: SPACING[2],
+                            backgroundColor: ttsVoice === v ? colors.surface1 : colors.surface0,
+                          }}
+                        >
+                          <Text
                             style={{
-                              paddingHorizontal: SPACING[2],
-                              paddingVertical: SPACING[1],
-                              borderRadius: RADIUS.md,
-                              backgroundColor: sel ? colors.surface2 : 'transparent',
+                              color: ttsVoice === v ? colors.foreground : colors.foregroundMuted,
+                              fontSize: FONT_SIZE.base,
                             }}
                           >
-                            <Text
-                              style={{
-                                color: sel ? colors.foreground : colors.foregroundMuted,
-                                fontSize: FONT_SIZE.sm,
-                              }}
-                            >
-                              {v}
-                            </Text>
-                          </Pressable>
-                        );
-                      }
-                    )}
-                  </View>
+                            {v}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
                 </View>
-              </>
-            ) : (
-              <>
-                <View style={[row, rowBorder] as never}>
-                  <View style={rowContent}>
-                    <Text style={rowTitle}>STT model ID</Text>
-                    <Text style={rowHint}>e.g. whisper-1</Text>
-                  </View>
-                  <TextInput
-                    value={sttModel}
-                    onChangeText={setSttModel}
-                    placeholder="whisper-1"
-                    placeholderTextColor={colors.foregroundMuted}
-                    style={
-                      {
-                        backgroundColor: colors.surface0,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        borderRadius: RADIUS.lg,
-                        paddingHorizontal: SPACING[3],
-                        paddingVertical: SPACING[3],
-                        color: colors.foreground,
-                        fontSize: FONT_SIZE.base,
-                        minWidth: 140,
-                      } as never
-                    }
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
-                <View style={[row, rowBorder] as never}>
-                  <View style={rowContent}>
-                    <Text style={rowTitle}>TTS model ID</Text>
-                    <Text style={rowHint}>e.g. tts-1</Text>
-                  </View>
-                  <TextInput
-                    value={ttsModel}
-                    onChangeText={setTtsModel}
-                    placeholder="tts-1"
-                    placeholderTextColor={colors.foregroundMuted}
-                    style={
-                      {
-                        backgroundColor: colors.surface0,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        borderRadius: RADIUS.lg,
-                        paddingHorizontal: SPACING[3],
-                        paddingVertical: SPACING[3],
-                        color: colors.foreground,
-                        fontSize: FONT_SIZE.base,
-                        minWidth: 140,
-                      } as never
-                    }
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
-                <View style={[row, rowBorder] as never}>
-                  <View style={rowContent}>
-                    <Text style={rowTitle}>Voice</Text>
-                    <Text style={rowHint}>e.g. alloy</Text>
-                  </View>
-                  <TextInput
-                    value={ttsVoice}
-                    onChangeText={setTtsVoice}
-                    placeholder="alloy"
-                    placeholderTextColor={colors.foregroundMuted}
-                    style={
-                      {
-                        backgroundColor: colors.surface0,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        borderRadius: RADIUS.lg,
-                        paddingHorizontal: SPACING[3],
-                        paddingVertical: SPACING[3],
-                        color: colors.foreground,
-                        fontSize: FONT_SIZE.base,
-                        minWidth: 140,
-                      } as never
-                    }
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
-              </>
-            )}
+              ) : (
+                <TextInput
+                  value={ttsVoice}
+                  onChangeText={setTtsVoice}
+                  placeholder="alloy"
+                  placeholderTextColor={colors.foregroundMuted}
+                  style={
+                    {
+                      backgroundColor: colors.surface0,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderRadius: RADIUS.lg,
+                      paddingHorizontal: SPACING[3],
+                      paddingVertical: SPACING[2],
+                      color: colors.foreground,
+                      fontSize: FONT_SIZE.base,
+                      minWidth: 140,
+                      textAlign: 'right' as const,
+                    } as never
+                  }
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              )}
+            </View>
           </View>
         </View>
       </View>
@@ -521,7 +632,6 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
             <View style={row}>
               <View style={rowContent}>
                 <Text style={rowTitle}>Save and enable</Text>
-                <Text style={rowHint}>Writes settings.json and daemon speech config.</Text>
               </View>
               <Pressable
                 onPress={async () => {
@@ -565,9 +675,6 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
             <View style={[row, rowBorder] as never}>
               <View style={rowContent}>
                 <Text style={rowTitle}>Test voice</Text>
-                <Text style={rowHint}>
-                  Wav via {isGroq ? 'Groq Orpheus' : baseUrl || 'custom'} — OK = wav received.
-                </Text>
               </View>
               <Pressable
                 onPress={async () => {
@@ -618,7 +725,6 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                     padding: SPACING[4],
                     borderTopWidth: 1,
                     borderTopColor: msg.ok ? colors.statusSuccess : colors.statusDanger,
-                    backgroundColor: 'transparent',
                   } as never
                 }
               >
