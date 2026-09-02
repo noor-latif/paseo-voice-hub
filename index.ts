@@ -5,7 +5,7 @@ import { execFile } from "node:child_process";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { MainSurface } from "./main.client";
-import { saveSettings, testVoice, testStt, type VoiceHubSettings } from "./shared";
+import { saveSettings, testVoice, type VoiceHubSettings } from "./shared";
 
 function execFileAsync(cmd: string, args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -189,17 +189,6 @@ export default function contribute(plugin: PluginContext) {
     return { ok: true, bytes: buf.byteLength };
   });
 
-  plugin.handle(testStt, async () => {
-    const s = await readSettings();
-    const key = s.groqApiKey || process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || process.env.OPENAI_STT_API_KEY || "";
-    if (!key) return { ok: false, error: "No Groq API key saved." };
-    const res = await fetch(`${GROQ_BASE}/models`, { headers: { Authorization: `Bearer ${key}` } });
-    if (!res.ok) return { ok: false, error: `Key check failed ${res.status}` };
-    const j = (await res.json()) as { data: { id: string }[] };
-    const hasTurbo = j.data.some((m) => m.id === s.sttModel || m.id === "whisper-large-v3-turbo");
-    if (!hasTurbo) return { ok: false, error: `Model ${s.sttModel} not visible` };
-    return { ok: true };
-  });
 
   let server: Server | null = null;
 

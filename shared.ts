@@ -24,9 +24,3 @@ export const testVoice = defineRpc({
   }),
   output: z.object({ ok: z.boolean(), bytes: z.number().optional(), error: z.string().optional() }),
 });
-
-export const testStt = defineRpc({
-  name: "voice-hub.test-stt",
-  input: z.object({}),
-  output: z.object({ ok: z.boolean(), error: z.string().optional() }),
-});
