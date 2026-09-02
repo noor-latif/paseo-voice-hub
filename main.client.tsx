@@ -195,6 +195,43 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
   const rowTitle = { color: colors.foreground, fontSize: FONT_SIZE.base };
   const isGroq = provider === 'groq';
 
+  const desktopPanel: Record<string, unknown> = {
+    position: 'absolute' as const,
+    top: '100%' as unknown as number,
+    marginTop: SPACING[1],
+    backgroundColor: colors.surface0,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden' as const,
+    maxHeight: 320,
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  };
+
+  const searchRow = {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: SPACING[3],
+    gap: SPACING[2],
+    backgroundColor: colors.surface1,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  };
+
+  const comboboxItem = {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    minHeight: 36,
+    gap: SPACING[2],
+    paddingHorizontal: SPACING[3],
+    paddingVertical: SPACING[2],
+  };
+
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.surface0 } as never}
@@ -336,90 +373,139 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                   text="Forced for STT — keeps “refaktorera functionen” Swedish. Search any Whisper language."
                 />
               </View>
-              <Pressable
-                onPress={() => setLanguageOpen((v) => !v)}
-                style={{
-                  backgroundColor: colors.surface0,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: RADIUS.lg,
-                  paddingHorizontal: SPACING[3],
-                  paddingVertical: SPACING[3],
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <Text style={{ color: colors.foreground, fontSize: FONT_SIZE.base }}>
-                  {language} — {selectedLabel}
-                </Text>
-                <Text style={{ color: colors.foregroundMuted }}>{languageOpen ? '▲' : '▼'}</Text>
-              </Pressable>
-              {languageOpen && (
-                <View
+              <View style={{ position: 'relative' as const, zIndex: 5 }}>
+                <Pressable
+                  onPress={() => setLanguageOpen((v) => !v)}
                   style={{
                     backgroundColor: colors.surface0,
                     borderWidth: 1,
                     borderColor: colors.border,
                     borderRadius: RADIUS.lg,
-                    overflow: 'hidden',
-                    maxHeight: 220,
+                    paddingHorizontal: SPACING[3],
+                    paddingVertical: SPACING[3],
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                   }}
                 >
-                  <TextInput
-                    value={languageFilter}
-                    onChangeText={setLanguageFilter}
-                    placeholder="Search language..."
-                    placeholderTextColor={colors.foregroundMuted}
-                    style={
-                      {
-                        borderBottomWidth: 1,
-                        borderBottomColor: colors.border,
-                        paddingHorizontal: SPACING[3],
-                        paddingVertical: SPACING[2],
-                        color: colors.foreground,
-                        fontSize: FONT_SIZE.base,
-                      } as never
-                    }
-                    autoCapitalize="none"
-                  />
-                  <ScrollView style={{ maxHeight: 160 } as never} nestedScrollEnabled>
-                    {filtered.map((l) => (
-                      <Pressable
-                        key={l.code}
-                        onPress={() => {
-                          setLanguage(l.code);
-                          setLanguageOpen(false);
-                          setLanguageFilter('');
-                        }}
-                        style={{
-                          paddingHorizontal: SPACING[3],
-                          paddingVertical: SPACING[3],
-                          backgroundColor: language === l.code ? colors.surface1 : colors.surface0,
-                          borderBottomWidth: 1,
-                          borderBottomColor: colors.border,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            color: language === l.code ? colors.foreground : colors.foregroundMuted,
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>
+                    <View style={{ width: 16, alignItems: 'center' }}>
+                      <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>◐</Text>
+                    </View>
+                    <Text style={{ color: colors.foreground, fontSize: FONT_SIZE.base }}>
+                      {language} — {selectedLabel}
+                    </Text>
+                  </View>
+                  <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>▼</Text>
+                </Pressable>
+                {languageOpen && (
+                  <View style={{ ...desktopPanel, left: 0, right: 0 } as never}>
+                    <View style={searchRow}>
+                      <Text style={{ color: colors.foregroundMuted }}>⌕</Text>
+                      <TextInput
+                        value={languageFilter}
+                        onChangeText={setLanguageFilter}
+                        placeholder="Search models..."
+                        placeholderTextColor={colors.foregroundMuted}
+                        style={
+                          {
+                            flex: 1,
+                            paddingVertical: SPACING[3],
+                            color: colors.foreground,
                             fontSize: FONT_SIZE.base,
-                          }}
-                        >
-                          {l.code} — {l.label}
-                        </Text>
-                      </Pressable>
-                    ))}
-                    {filtered.length === 0 && (
-                      <View style={{ padding: SPACING[3] }}>
-                        <Text style={{ color: colors.foregroundMuted, fontSize: FONT_SIZE.sm }}>
-                          No match
-                        </Text>
+                          } as never
+                        }
+                        autoCapitalize="none"
+                        autoFocus
+                      />
+                    </View>
+                    <ScrollView
+                      style={{ maxHeight: 240 } as never}
+                      nestedScrollEnabled
+                      keyboardShouldPersistTaps="handled"
+                    >
+                      <View style={{ paddingVertical: SPACING[1] }}>
+                        {filtered.map((l) => {
+                          const active = language === l.code;
+                          return (
+                            <Pressable
+                              key={l.code}
+                              onPress={() => {
+                                setLanguage(l.code);
+                                setLanguageOpen(false);
+                                setLanguageFilter('');
+                              }}
+                              style={{
+                                ...comboboxItem,
+                                backgroundColor: active ? colors.surface1 : 'transparent',
+                              }}
+                            >
+                              <View
+                                style={{
+                                  width: 16,
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    color: active ? colors.foreground : colors.foregroundMuted,
+                                    fontSize: 12,
+                                  }}
+                                >
+                                  ◐
+                                </Text>
+                              </View>
+                              <View
+                                style={{
+                                  flex: 1,
+                                  flexDirection: 'row',
+                                  alignItems: 'baseline',
+                                  gap: SPACING[2],
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    color: colors.foreground,
+                                    fontSize: FONT_SIZE.base,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {l.label}
+                                </Text>
+                                <Text
+                                  style={{
+                                    color: colors.foregroundMuted,
+                                    fontSize: FONT_SIZE.sm,
+                                    flexShrink: 1,
+                                  }}
+                                  numberOfLines={1}
+                                >
+                                  {l.code}
+                                </Text>
+                              </View>
+                              {active && (
+                                <Text style={{ color: colors.foreground, fontSize: 12 }}>✓</Text>
+                              )}
+                            </Pressable>
+                          );
+                        })}
+                        {filtered.length === 0 && (
+                          <View
+                            style={{ paddingHorizontal: SPACING[3], paddingVertical: SPACING[2] }}
+                          >
+                            <Text
+                              style={{ color: colors.foregroundMuted, fontSize: FONT_SIZE.base }}
+                            >
+                              No results
+                            </Text>
+                          </View>
+                        )}
                       </View>
-                    )}
-                  </ScrollView>
-                </View>
-              )}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
             </View>
             <View style={[row, rowBorder] as never}>
               <View style={rowContent}>
@@ -536,7 +622,14 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                 </View>
               </View>
               {isGroq ? (
-                <View style={{ minWidth: 140 }}>
+                <View
+                  style={{
+                    position: 'relative' as const,
+                    minWidth: 160,
+                    alignItems: 'flex-end',
+                    zIndex: 4,
+                  }}
+                >
                   <Pressable
                     onPress={() => setVoiceOpen((v) => !v)}
                     style={{
@@ -547,50 +640,78 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                       paddingHorizontal: SPACING[3],
                       paddingVertical: SPACING[2],
                       flexDirection: 'row',
-                      justifyContent: 'space-between',
                       alignItems: 'center',
-                      minWidth: 120,
+                      gap: SPACING[2],
+                      minWidth: 140,
+                      justifyContent: 'space-between',
                     }}
                   >
-                    <Text style={{ color: colors.foreground, fontSize: FONT_SIZE.base }}>
-                      {ttsVoice}
-                    </Text>
-                    <Text style={{ color: colors.foregroundMuted }}>{voiceOpen ? '▲' : '▼'}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>
+                      <View style={{ width: 16, alignItems: 'center' }}>
+                        <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>◐</Text>
+                      </View>
+                      <Text style={{ color: colors.foreground, fontSize: FONT_SIZE.base }}>
+                        {ttsVoice}
+                      </Text>
+                    </View>
+                    <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>▼</Text>
                   </Pressable>
                   {voiceOpen && (
-                    <View
-                      style={{
-                        marginTop: SPACING[1],
-                        backgroundColor: colors.surface0,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        borderRadius: RADIUS.lg,
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {VOICES.map((v) => (
-                        <Pressable
-                          key={v}
-                          onPress={() => {
-                            setTtsVoice(v);
-                            setVoiceOpen(false);
-                          }}
-                          style={{
-                            paddingHorizontal: SPACING[3],
-                            paddingVertical: SPACING[2],
-                            backgroundColor: ttsVoice === v ? colors.surface1 : colors.surface0,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              color: ttsVoice === v ? colors.foreground : colors.foregroundMuted,
-                              fontSize: FONT_SIZE.base,
-                            }}
-                          >
-                            {v}
-                          </Text>
-                        </Pressable>
-                      ))}
+                    <View style={{ ...desktopPanel, right: 0, minWidth: 200 } as never}>
+                      <ScrollView
+                        style={{ maxHeight: 240 } as never}
+                        nestedScrollEnabled
+                        keyboardShouldPersistTaps="handled"
+                      >
+                        <View style={{ paddingVertical: SPACING[1] }}>
+                          {VOICES.map((v) => {
+                            const active = ttsVoice === v;
+                            return (
+                              <Pressable
+                                key={v}
+                                onPress={() => {
+                                  setTtsVoice(v);
+                                  setVoiceOpen(false);
+                                }}
+                                style={{
+                                  ...comboboxItem,
+                                  backgroundColor: active ? colors.surface1 : 'transparent',
+                                }}
+                              >
+                                <View style={{ width: 16, alignItems: 'center' }}>
+                                  <Text
+                                    style={{
+                                      color: active ? colors.foreground : colors.foregroundMuted,
+                                      fontSize: 12,
+                                    }}
+                                  >
+                                    ◐
+                                  </Text>
+                                </View>
+                                <View style={{ flex: 1, flexDirection: 'row', gap: SPACING[2] }}>
+                                  <Text
+                                    style={{ color: colors.foreground, fontSize: FONT_SIZE.base }}
+                                  >
+                                    {v}
+                                  </Text>
+                                  <Text
+                                    style={{
+                                      color: colors.foregroundMuted,
+                                      fontSize: FONT_SIZE.sm,
+                                    }}
+                                    numberOfLines={1}
+                                  >
+                                    groq/orpheus-{v}
+                                  </Text>
+                                </View>
+                                {active && (
+                                  <Text style={{ color: colors.foreground, fontSize: 12 }}>✓</Text>
+                                )}
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      </ScrollView>
                     </View>
                   )}
                 </View>
