@@ -1,11 +1,14 @@
 import type { PluginContext } from "@getpaseo/plugin";
 import { createServer, type Server } from "node:http";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { MainSurface } from "./main.client";
 import { loadSettings, saveSettings, testVoice, testStt, type VoiceHubSettings } from "./shared";
 
+const execFileAsync = promisify(execFile);
 const PROXY_PORT = 8789;
 const GROQ_BASE = "https://api.groq.com/openai/v1";
 const PLUGIN_ID = "voice-hub";
@@ -16,6 +19,10 @@ function paseoHome(): string {
 
 function settingsPath(): string {
   return join(paseoHome(), "plugins", PLUGIN_ID, "settings.json");
+}
+
+function daemonConfigPath(): string {
+  return join(paseoHome(), "config.json");
 }
 
 const DEFAULTS: VoiceHubSettings = {
@@ -53,6 +60,78 @@ async function writeSettings(settings: VoiceHubSettings): Promise<VoiceHubSettin
   return settings;
 }
 
+async function ensureDaemonSpeechConfig(settings: VoiceHubSettings): Promise<{ changed: boolean; needsRestart: boolean }> {
+  const path = daemonConfigPath();
+  let raw: string;
+  try {
+    raw = await readFile(path, "utf8");
+  } catch {
+    return { changed: false, needsRestart: false };
+  }
+  let config: Record<string, unknown>;
+  try {
+    config = JSON.parse(raw);
+  } catch {
+    return { changed: false, needsRestart: false };
+  }
+  const original = JSON.stringify(config);
+  const features = (config.features as Record<string, unknown> | undefined) ?? {};
+  const providers = (config.providers as Record<string, unknown> | undefined) ?? {};
+  const openai = (providers.openai as Record<string, unknown> | undefined) ?? {};
+
+  const dictation = (features.dictation as Record<string, unknown> | undefined) ?? {};
+  const voiceMode = (features.voiceMode as Record<string, unknown> | undefined) ?? {};
+  const dictStt = (dictation.stt as Record<string, unknown> | undefined) ?? {};
+  const voiceStt = (voiceMode.stt as Record<string, unknown> | undefined) ?? {};
+  const voiceTts = (voiceMode.tts as Record<string, unknown> | undefined) ?? {};
+
+  dictation.enabled = true;
+  dictStt.provider = "openai";
+  dictStt.language = settings.language;
+  if (settings.sttModel) dictStt.model = settings.sttModel;
+
+  voiceMode.enabled = true;
+  voiceStt.provider = "openai";
+  voiceStt.language = settings.language;
+  if (settings.sttModel) voiceStt.model = settings.sttModel;
+  voiceTts.provider = "openai";
+  voiceTts.voice = "alloy";
+  voiceTts.model = "tts-1";
+
+  const stt = (openai.stt as Record<string, unknown> | undefined) ?? {};
+  const tts = (openai.tts as Record<string, unknown> | undefined) ?? {};
+  if (settings.groqApiKey) {
+    openai.apiKey = settings.groqApiKey;
+    stt.apiKey = settings.groqApiKey;
+    tts.apiKey = settings.groqApiKey;
+  }
+  stt.baseUrl = "https://api.groq.com/openai/v1";
+  tts.baseUrl = `http://127.0.0.1:${PROXY_PORT}/v1`;
+
+  openai.stt = stt;
+  openai.tts = tts;
+  providers.openai = openai;
+  dictation.stt = dictStt;
+  voiceMode.stt = voiceStt;
+  voiceMode.tts = voiceTts;
+  features.dictation = dictation;
+  features.voiceMode = voiceMode;
+  config.features = features;
+  config.providers = providers;
+
+  if (!config.pluginsEnabled) config.pluginsEnabled = true;
+
+  const next = JSON.stringify(config, null, 2) + "\n";
+  if (next === original + "\n" || JSON.stringify(JSON.parse(next)) === JSON.stringify(JSON.parse(original))) {
+    return { changed: false, needsRestart: false };
+  }
+  await writeFile(path, next, { mode: 0o600 });
+  try {
+    await chmod(path, 0o600);
+  } catch {}
+  return { changed: true, needsRestart: true };
+}
+
 function mapVoice(inputVoice?: string): string {
   const allowed: Record<string, true> = { autumn: true, diana: true, hannah: true, austin: true, daniel: true, troy: true };
   const v = (inputVoice || "troy").toLowerCase();
@@ -74,7 +153,23 @@ export default function contribute(plugin: PluginContext) {
     const next: VoiceHubSettings = { groqApiKey: trimmed || undefined, language, sttModel, ttsVoice };
     await writeSettings(next);
     console.log(`[voice-hub] saved settings language=${language} stt=${sttModel} tts=${ttsVoice} key=${trimmed ? "set" : "cleared"}`);
-    return next;
+
+    const { changed, needsRestart } = await ensureDaemonSpeechConfig(next);
+    if (changed) {
+      console.log(`[voice-hub] daemon config updated, scheduling restart`);
+      setTimeout(async () => {
+        try {
+          await execFileAsync("paseo", ["daemon", "restart"]);
+        } catch {
+          try {
+            await execFileAsync("systemctl", ["--user", "restart", "paseo.service"]);
+          } catch (e) {
+            console.error(`[voice-hub] auto-restart failed: ${e}`);
+          }
+        }
+      }, 1200);
+    }
+    return { ...next, _daemonChanged: changed, _needsRestart: needsRestart } as VoiceHubSettings & { _daemonChanged: boolean; _needsRestart: boolean };
   });
 
   plugin.handle(testVoice, async ({ text, voice }) => {

@@ -27,13 +27,10 @@ Mixing `sv + en` tech? Keep `Svenska`, Turbo's ~1% extra WER on `åäö` is fixe
    ```bash
    PASEO_PASSWORD=$(grep PASEO_PASSWORD ~/.config/paseo.env | cut -d= -f2) paseo plugin add noor-latif/paseo-voice-hub
    ```
+3. **Open Paseo app → Voice Hub** (sidebar) → paste `gsk_...` → pick `Svenska`, `Turbo`, `troy` → **Save and enable** → **Test voice**. 
+   The plugin saves to `~/.paseo/plugins/voice-hub/settings.json` (600 perms), **auto-writes your daemon's speech config** (`features.dictation` + `features.voiceMode` + `providers.openai` → Groq `https://api.groq.com/openai/v1` + proxy `http://127.0.0.1:8789`) and **restarts the daemon** — voice button ready in ~5s. No `~/.config/paseo.env` `OPENAI_*` editing, no manual `systemctl restart`.
 
-3. **Open Paseo app → Voice Hub** (sidebar) → paste `gsk_...` → pick `Svenska`, `Turbo`, `troy` → **Save and enable** → **Test voice**.
-
-That's it. No `~/.config/paseo.env`, no `OPENAI_*`, no `systemctl restart`. The plugin stores your key safely at `~/.paseo/plugins/voice-hub/settings.json` (600 perms) and the proxy starts on `8789` automatically.
-
-> Headless VPS still needs the daemon's speech env once: if your `~/.paseo/config.json` `pluginsEnabled` was `false`, run `paseo reload` after the first add. The wizard handles the Groq key from then on.
-
+That's it. Fresh `paseo daemon` with no speech config → one paste and you're done. The proxy starts on `8789` automatically (`curl http://127.0.0.1:8789/health` → `hasKey:true`).
 ## How it works (you don't need to know)
 
 - Paseo only knows `openai` + `local` speech. This plugin pretends to be OpenAI `POST /v1/audio/speech` on `127.0.0.1:8789`, forwards to `https://api.groq.com/openai/v1/audio/speech` with `orpheus/troy/wav`.

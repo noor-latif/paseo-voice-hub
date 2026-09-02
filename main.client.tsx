@@ -68,14 +68,17 @@ export function MainSurface({ theme, layout }: PluginSurfaceProps) {
   }, [data]);
 
   const saveMut = useMutation({
-    mutationFn: (s: Settings) => paseo.rpc(saveSettings, s),
-    onSuccess: () => {
+    mutationFn: (s: Settings) => paseo.rpc(saveSettings, s) as Promise<Settings & { _daemonChanged?: boolean; _needsRestart?: boolean }>,
+    onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ["voice-hub", "settings"] });
-      setMessage({ text: "Saved! Voice Hub is ready. Try Test voice below.", ok: true });
+      if ((r as unknown as { _daemonChanged?: boolean })._daemonChanged) {
+        setMessage({ text: "Saved! Restarting Paseo daemon… voice button ready in ~5s. Test voice after.", ok: true });
+      } else {
+        setMessage({ text: "Saved! Voice Hub is ready. Try Test voice below.", ok: true });
+      }
     },
     onError: (e: unknown) => setMessage({ text: e instanceof Error ? e.message : String(e), ok: false }),
   });
-
   const voiceMut = useMutation({
     mutationFn: (v: { text: string; voice: string }) => paseo.rpc(testVoice, v),
     onSuccess: (r: { ok: boolean; bytes?: number; error?: string }) => {
