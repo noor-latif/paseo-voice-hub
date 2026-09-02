@@ -8,10 +8,10 @@ Friendly hub for better voices in Paseo — no terminal, no AI models on your VP
 
 ## What you get
 
-| Feature | What it does | Why it's better |
-|---|---|---|
-| **Dictation STT** | Groq `whisper-large-v3-turbo` on LPU | <250ms, ~9× cheaper than OpenAI, forced `sv` so `refaktorera functionen` stays Swedish |
-| **Voice TTS** | Groq `canopylabs/orpheus-v1-english` via tiny local proxy `127.0.0.1:8789` | Zero local RAM — perfect for 7.8 Gi VPS — survives `paseo update` |
+| Feature           | What it does                                                               | Why it's better                                                                        |
+| ----------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **Dictation STT** | Groq `whisper-large-v3-turbo` on LPU                                       | <250ms, ~9× cheaper than OpenAI, forced `sv` so `refaktorera functionen` stays Swedish |
+| **Voice TTS**     | Groq `canopylabs/orpheus-v1-english` via tiny local proxy `127.0.0.1:8789` | Zero local RAM — perfect for 7.8 Gi VPS — survives `paseo update`                      |
 
 Mixing `sv + en` tech? Keep `Svenska`, Turbo's ~1% extra WER on `åäö` is fixed by your coding agent.
 
@@ -27,10 +27,11 @@ Mixing `sv + en` tech? Keep `Svenska`, Turbo's ~1% extra WER on `åäö` is fixe
    ```bash
    PASEO_PASSWORD=$(grep PASEO_PASSWORD ~/.config/paseo.env | cut -d= -f2) paseo plugin add noor-latif/paseo-voice-hub
    ```
-3. **Open Paseo app → Voice Hub** (sidebar) → paste `gsk_...` → pick `Svenska`, `Turbo`, `troy` → **Save and enable** → **Test voice**. 
+3. **Open Paseo app → Voice Hub** (sidebar) → paste `gsk_...` → pick `Svenska`, `Turbo`, `troy` → **Save and enable** → **Test voice**.
    The plugin saves to `~/.paseo/plugins/voice-hub/settings.json` (600 perms), **auto-writes your daemon's speech config** (`features.dictation` + `features.voiceMode` + `providers.openai` → Groq `https://api.groq.com/openai/v1` + proxy `http://127.0.0.1:8789`) and **restarts the daemon** — voice button ready in ~5s. No `~/.config/paseo.env` `OPENAI_*` editing, no manual `systemctl restart`.
 
 That's it. Fresh `paseo daemon` with no speech config → one paste and you're done. The proxy starts on `8789` automatically (`curl http://127.0.0.1:8789/health` → `hasKey:true`).
+
 ## How it works (you don't need to know)
 
 - Paseo only knows `openai` + `local` speech. This plugin pretends to be OpenAI `POST /v1/audio/speech` on `127.0.0.1:8789`, forwards to `https://api.groq.com/openai/v1/audio/speech` with `orpheus/troy/wav`.

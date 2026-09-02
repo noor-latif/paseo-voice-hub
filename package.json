@@ -3,15 +3,23 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@getpaseo/client": "^0.4.0",
     "@getpaseo/protocol": "^0.6.1",
     "@types/react": "~19.2.0",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.6",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.69.0",
     "zod": "^4.4.3"
   },
   "description": "Friendly hub for better voices - Groq Whisper Turbo SV STT + Orpheus TTS via proxy"

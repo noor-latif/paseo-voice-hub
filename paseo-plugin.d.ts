@@ -1,6 +1,6 @@
-declare module "@getpaseo/plugin/server" {
-  import type { PaseoApi } from "@getpaseo/client";
-  import type { ZodType, input as ZodInput, output as ZodOutput } from "zod";
+declare module '@getpaseo/plugin/server' {
+  import type { PaseoApi } from '@getpaseo/client';
+  import type { ZodType, input as ZodInput, output as ZodOutput } from 'zod';
 
   export interface PluginRpcContract<
     InputSchema extends ZodType = ZodType,
@@ -45,15 +45,15 @@ declare module "@getpaseo/plugin/server" {
   }): PluginRpcContract<InputSchema, OutputSchema>;
 
   export function defineAttachmentSource<Definition extends PluginAttachmentSourceContribution>(
-    definition: Definition,
+    definition: Definition
   ): Definition;
 
-  export const PluginAttachmentItemSchema: import("zod").ZodType<PluginAttachmentItem>;
-  export const PluginAttachmentSearchPayloadSchema: import("zod").ZodType<PluginAttachmentSearchPayload>;
+  export const PluginAttachmentItemSchema: import('zod').ZodType<PluginAttachmentItem>;
+  export const PluginAttachmentSearchPayloadSchema: import('zod').ZodType<PluginAttachmentSearchPayload>;
 }
 
-declare module "@getpaseo/plugin/react-native" {
-  import type { ComponentType, FunctionComponent, ReactNode } from "react";
+declare module '@getpaseo/plugin/react-native' {
+  import type { ComponentType, FunctionComponent, ReactNode } from 'react';
 
   export interface PluginIconProps {
     name: string;
@@ -77,7 +77,7 @@ declare module "@getpaseo/plugin/react-native" {
     Content: ComponentType<ModalContentProps>;
   }
 
-  export type ToastVariant = "default" | "info" | "success" | "warning" | "error";
+  export type ToastVariant = 'default' | 'info' | 'success' | 'warning' | 'error';
   export interface ToastOptions {
     variant?: ToastVariant;
     durationMs?: number;
@@ -92,16 +92,16 @@ declare module "@getpaseo/plugin/react-native" {
   export function useToast(): ToastApi;
 }
 
-declare module "@getpaseo/plugin" {
-  import type { ComponentType } from "react";
-  import type { PaseoApi } from "@getpaseo/client";
-  import type { AgentTimelineItem } from "@getpaseo/protocol/agent-types";
-  import type { ZodType, input as ZodInput, output as ZodOutput } from "zod";
+declare module '@getpaseo/plugin' {
+  import type { ComponentType } from 'react';
+  import type { PaseoApi } from '@getpaseo/client';
+  import type { AgentTimelineItem } from '@getpaseo/protocol/agent-types';
+  import type { ZodType, input as ZodInput, output as ZodOutput } from 'zod';
   import type {
     PluginAttachmentSourceContribution,
     PluginHandlerContext,
     PluginRpcContract,
-  } from "@getpaseo/plugin/server";
+  } from '@getpaseo/plugin/server';
 
   export {
     PluginAttachmentItemSchema,
@@ -113,7 +113,7 @@ declare module "@getpaseo/plugin" {
     type PluginAttachmentSourceContribution,
     type PluginHandlerContext,
     type PluginRpcContract,
-  } from "@getpaseo/plugin/server";
+  } from '@getpaseo/plugin/server';
 
   export interface PluginTheme {
     readonly colors: {
@@ -134,7 +134,7 @@ declare module "@getpaseo/plugin" {
   export interface PluginHostProps {
     theme: PluginTheme;
     host: { id: string; label: string };
-    layout: { compact: boolean; platform: "ios" | "android" | "web" };
+    layout: { compact: boolean; platform: 'ios' | 'android' | 'web' };
   }
 
   interface PluginNavigableHostProps extends PluginHostProps {
@@ -159,11 +159,11 @@ declare module "@getpaseo/plugin" {
     readonly projectDisplayName: string;
     readonly projectRootPath: string;
     readonly directory: string;
-    readonly projectKind: "git" | "non_git" | "directory";
-    readonly kind: "directory" | "local_checkout" | "checkout" | "worktree";
+    readonly projectKind: 'git' | 'non_git' | 'directory';
+    readonly kind: 'directory' | 'local_checkout' | 'checkout' | 'worktree';
     readonly name: string;
     readonly title: string | null;
-    readonly status: "needs_input" | "failed" | "running" | "attention" | "done";
+    readonly status: 'needs_input' | 'failed' | 'running' | 'attention' | 'done';
     readonly statusEnteredAt: string | null;
     readonly archivingAt: string | null;
     readonly diffStat: { readonly additions: number; readonly deletions: number } | null;
@@ -173,7 +173,7 @@ declare module "@getpaseo/plugin" {
     readonly id: string;
     readonly workspaceId: string;
     readonly provider: string;
-    readonly status: "initializing" | "idle" | "running" | "error" | "closed";
+    readonly status: 'initializing' | 'idle' | 'running' | 'error' | 'closed';
     readonly createdAt: string;
     readonly updatedAt: string;
     readonly lastActivityAt: string;
@@ -183,18 +183,18 @@ declare module "@getpaseo/plugin" {
     readonly currentModeId: string | null;
     readonly thinkingOptionId: string | null;
     readonly requiresAttention: boolean;
-    readonly attentionReason: "finished" | "error" | "permission" | null;
+    readonly attentionReason: 'finished' | 'error' | 'permission' | null;
     readonly parentAgentId: string | null;
     readonly labels: Readonly<Record<string, string>>;
   }
 
   export interface PluginWorkspacePanelProps extends PluginNavigableHostProps {
-    context: "workspace";
+    context: 'workspace';
     workspaceId: string;
   }
 
   export interface PluginAgentPanelProps extends PluginNavigableHostProps {
-    context: "agent";
+    context: 'agent';
     workspaceId: string;
     agentId: string;
   }
@@ -213,16 +213,32 @@ declare module "@getpaseo/plugin" {
     onPress(): void | Promise<void>;
   }
 
-  export type PluginPanelLocation = "workspace" | "explorer";
-  export interface PluginOpenPanelOptions { location?: PluginPanelLocation; }
+  export type PluginPanelLocation = 'workspace' | 'explorer';
+  export interface PluginOpenPanelOptions {
+    location?: PluginPanelLocation;
+  }
   export interface PluginClientOpenPanelOptions extends PluginOpenPanelOptions {
     workspaceId: string;
     agentId?: string;
   }
 
   export type PluginWorkspacePanelContribution =
-    | { id: string; title: string; icon: string; locations?: readonly PluginPanelLocation[]; context: "workspace"; Component: ComponentType<PluginWorkspacePanelProps> }
-    | { id: string; title: string; icon: string; locations?: readonly PluginPanelLocation[]; context: "agent"; Component: ComponentType<PluginAgentPanelProps> };
+    | {
+        id: string;
+        title: string;
+        icon: string;
+        locations?: readonly PluginPanelLocation[];
+        context: 'workspace';
+        Component: ComponentType<PluginWorkspacePanelProps>;
+      }
+    | {
+        id: string;
+        title: string;
+        icon: string;
+        locations?: readonly PluginPanelLocation[];
+        context: 'agent';
+        Component: ComponentType<PluginAgentPanelProps>;
+      };
 
   export interface PluginSidebarContribution {
     id: string;
@@ -245,7 +261,7 @@ declare module "@getpaseo/plugin" {
   export interface PluginThemeContribution {
     id: string;
     name: string;
-    appearance: "light" | "dark";
+    appearance: 'light' | 'dark';
     colors: PluginThemeColors;
   }
 
@@ -254,20 +270,31 @@ declare module "@getpaseo/plugin" {
     Component: ComponentType<PluginSurfaceProps>;
   }
 
-  export type PluginTimelineData = null | boolean | number | string | PluginTimelineData[] | { [key: string]: PluginTimelineData };
-  export interface PluginTimelineItem { type: "plugin"; kind: string; version: number; data: PluginTimelineData; }
-  export interface PluginTimelineTransformResult { items: PluginTimelineItem[]; }
-  export type PluginTimelineTransformerContribution<ItemType extends AgentTimelineItem["type"] = AgentTimelineItem["type"]> =
-    ItemType extends AgentTimelineItem["type"]
-      ? {
-          id: string;
-          query: { itemType: ItemType };
-          transform(input: { item: Extract<AgentTimelineItem, { type: ItemType }> }): PluginTimelineTransformResult | undefined;
-        }
-      : never;
+  export type PluginTimelineData =
+    null | boolean | number | string | PluginTimelineData[] | { [key: string]: PluginTimelineData };
+  export interface PluginTimelineItem {
+    type: 'plugin';
+    kind: string;
+    version: number;
+    data: PluginTimelineData;
+  }
+  export interface PluginTimelineTransformResult {
+    items: PluginTimelineItem[];
+  }
+  export type PluginTimelineTransformerContribution<
+    ItemType extends AgentTimelineItem['type'] = AgentTimelineItem['type'],
+  > = ItemType extends AgentTimelineItem['type']
+    ? {
+        id: string;
+        query: { itemType: ItemType };
+        transform(input: {
+          item: Extract<AgentTimelineItem, { type: ItemType }>;
+        }): PluginTimelineTransformResult | undefined;
+      }
+    : never;
   export interface PluginTimelineItemProps<Data = unknown> extends PluginHostProps {
     agentId: string;
-    item: { type: "plugin"; kind: string; version: number; data: Data };
+    item: { type: 'plugin'; kind: string; version: number; data: Data };
     timestamp: Date;
   }
   export interface PluginTimelineRendererContribution<Schema extends ZodType = ZodType> {
@@ -281,23 +308,23 @@ declare module "@getpaseo/plugin" {
     paseo: PaseoApi;
     rpc<InputSchema extends ZodType, OutputSchema extends ZodType>(
       contract: PluginRpcContract<InputSchema, OutputSchema>,
-      input: ZodInput<InputSchema>,
+      input: ZodInput<InputSchema>
     ): Promise<ZodOutput<OutputSchema>>;
     openSurface(id: string): void;
   }
 
   export interface PluginGlobalCommandContext extends PluginCommandCapabilities {
-    context: "global";
+    context: 'global';
   }
 
   export interface PluginWorkspaceCommandContext extends PluginCommandCapabilities {
-    context: "workspace";
+    context: 'workspace';
     workspace: PluginWorkspaceSnapshot;
     openPanel(id: string, options?: PluginOpenPanelOptions): void;
   }
 
   export interface PluginAgentCommandContext extends PluginCommandCapabilities {
-    context: "agent";
+    context: 'agent';
     workspace: PluginWorkspaceSnapshot;
     agent: PluginAgentSnapshot;
     openPanel(id: string, options?: PluginOpenPanelOptions): void;
@@ -310,17 +337,38 @@ declare module "@getpaseo/plugin" {
   export type PluginClientContribution = (client: PluginClientContext) => PluginCleanup;
 
   export type PluginCommandCenterItemContribution =
-    | { id: string; title: string; icon: string; keywords?: readonly string[]; context: "global"; onSelect(context: PluginGlobalCommandContext): void | Promise<void> }
-    | { id: string; title: string; icon: string; keywords?: readonly string[]; context: "workspace"; onSelect(context: PluginWorkspaceCommandContext): void | Promise<void> }
-    | { id: string; title: string; icon: string; keywords?: readonly string[]; context: "agent"; onSelect(context: PluginAgentCommandContext): void | Promise<void> };
+    | {
+        id: string;
+        title: string;
+        icon: string;
+        keywords?: readonly string[];
+        context: 'global';
+        onSelect(context: PluginGlobalCommandContext): void | Promise<void>;
+      }
+    | {
+        id: string;
+        title: string;
+        icon: string;
+        keywords?: readonly string[];
+        context: 'workspace';
+        onSelect(context: PluginWorkspaceCommandContext): void | Promise<void>;
+      }
+    | {
+        id: string;
+        title: string;
+        icon: string;
+        keywords?: readonly string[];
+        context: 'agent';
+        onSelect(context: PluginAgentCommandContext): void | Promise<void>;
+      };
 
   export interface PluginContext {
     handle<InputSchema extends ZodType, OutputSchema extends ZodType>(
       contract: PluginRpcContract<InputSchema, OutputSchema>,
       handler: (
         input: ZodOutput<InputSchema>,
-        context: PluginHandlerContext,
-      ) => ZodInput<OutputSchema> | Promise<ZodInput<OutputSchema>>,
+        context: PluginHandlerContext
+      ) => ZodInput<OutputSchema> | Promise<ZodInput<OutputSchema>>
     ): void;
     addSurface(id: string, Component: ComponentType<PluginSurfaceProps>): void;
     addSidebarItem(contribution: PluginSidebarContribution): void;
@@ -329,8 +377,12 @@ declare module "@getpaseo/plugin" {
     addClientSide(contribution: PluginClientContribution): void;
     addAttachmentSource(contribution: PluginAttachmentSourceContribution): void;
     addTheme(contribution: PluginThemeContribution): void;
-    addTimelineTransformer<ItemType extends AgentTimelineItem["type"]>(contribution: PluginTimelineTransformerContribution<ItemType>): void;
-    addTimelineRenderer<Schema extends ZodType>(contribution: PluginTimelineRendererContribution<Schema>): void;
+    addTimelineTransformer<ItemType extends AgentTimelineItem['type']>(
+      contribution: PluginTimelineTransformerContribution<ItemType>
+    ): void;
+    addTimelineRenderer<Schema extends ZodType>(
+      contribution: PluginTimelineRendererContribution<Schema>
+    ): void;
   }
 
   export type PluginCleanup = () => void | Promise<void>;
@@ -339,18 +391,18 @@ declare module "@getpaseo/plugin" {
   export const Icon: ComponentType<PluginIconProps>;
 
   export function useRpc<InputSchema extends ZodType, OutputSchema extends ZodType>(
-    contract: PluginRpcContract<InputSchema, OutputSchema>,
+    contract: PluginRpcContract<InputSchema, OutputSchema>
   ): (input: ZodInput<InputSchema>) => Promise<ZodOutput<OutputSchema>>;
 
   export function usePaseo(): PaseoApi;
 
   export function useWorkspace<Selection>(
     workspaceId: string,
-    selector: (workspace: PluginWorkspaceSnapshot) => Selection,
+    selector: (workspace: PluginWorkspaceSnapshot) => Selection
   ): Selection | null;
 
   export function useAgent<Selection>(
     agentId: string,
-    selector: (agent: PluginAgentSnapshot) => Selection,
+    selector: (agent: PluginAgentSnapshot) => Selection
   ): Selection | null;
 }
