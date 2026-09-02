@@ -52,15 +52,17 @@ export function MainSurface({ theme, layout }: PluginSurfaceProps) {
     }),
     [colors, compact],
   );
-
-  const { isLoading, data } = useQuery({
+  const { data, isFetching } = useQuery({
     queryKey: ["voice-hub", "settings"],
     queryFn: () => paseo.rpc(loadSettings, {}),
+    initialData: { language: "sv" as const, sttModel: "whisper-large-v3-turbo" as const, ttsVoice: "troy" as const },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   useEffect(() => {
     if (data) {
-      setGroqApiKey(data.groqApiKey || "");
+      setGroqApiKey((prev) => (data.groqApiKey !== undefined ? data.groqApiKey || "" : prev));
       setLanguage(data.language);
       setSttModel(data.sttModel);
       setTtsVoice(data.ttsVoice);
@@ -97,14 +99,7 @@ export function MainSurface({ theme, layout }: PluginSurfaceProps) {
     onError: (e: unknown) => setMessage({ text: e instanceof Error ? e.message : String(e), ok: false }),
   });
 
-  if (isLoading) {
-    return (
-      <View style={[styles.screen, { justifyContent: "center", alignItems: "center" }]}>
-        <ActivityIndicator color={colors.accent} />
-        <Text style={styles.muted}>Loading Voice Hub…</Text>
-      </View>
-    );
-  }
+  const isSaving = saveMut.isPending || voiceMut.isPending || sttMut.isPending;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.scroll}>
