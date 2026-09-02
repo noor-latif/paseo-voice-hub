@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 export const VoiceHubSettingsSchema = z.object({
   groqApiKey: z.string().trim().min(1).optional(),
-  language: z.enum(['sv', 'en']).default('sv'),
+  language: z.string().trim().min(2).max(10).default('sv'),
   sttModel: z
     .enum(['whisper-large-v3-turbo', 'whisper-large-v3'])
     .default('whisper-large-v3-turbo'),
