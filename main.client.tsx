@@ -3,6 +3,17 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useRpc } from '@getpaseo/plugin';
 import { saveSettings, testVoice } from './shared';
+import {
+  BORDER_RADIUS,
+  CONTROL_HEIGHTS,
+  FONT_SIZE,
+  FONT_WEIGHT,
+  ICON_SIZE,
+  SHADOW,
+  SPACING,
+  fieldLineHeight,
+} from './design-tokens';
+import { createSettingsStyles } from './settings-primitives';
 
 const LANGUAGES: { code: string; label: string }[] = [
   { code: 'sv', label: 'Swedish' },
@@ -40,10 +51,6 @@ const LANGUAGES: { code: string; label: string }[] = [
 
 const VOICES = ['troy', 'hannah', 'autumn', 'diana', 'austin', 'daniel'] as const;
 
-const SPACING = { 1: 4, 2: 8, 3: 12, 4: 16, 6: 24 } as const;
-const FONT_SIZE = { sm: 12, base: 14 } as const;
-const RADIUS = { md: 6, lg: 8, xl: 12 } as const;
-
 function Segmented<T extends string>({
   options,
   value,
@@ -64,9 +71,9 @@ function Segmented<T extends string>({
             key={opt.value}
             onPress={() => onValueChange(opt.value)}
             style={{
-              minHeight: 28,
+              minHeight: CONTROL_HEIGHTS.tight,
               paddingHorizontal: SPACING[2],
-              borderRadius: RADIUS.md,
+              borderRadius: BORDER_RADIUS.md,
               backgroundColor: selected ? colors.surface2 : 'transparent',
               alignItems: 'center',
               justifyContent: 'center',
@@ -100,16 +107,22 @@ function RowInfo({
       <Pressable
         onPress={() => setOpen((v) => !v)}
         style={{
-          width: 16,
-          height: 16,
-          borderRadius: 8,
+          width: ICON_SIZE.md,
+          height: ICON_SIZE.md,
+          borderRadius: BORDER_RADIUS.full,
           borderWidth: 1,
           borderColor: colors.border,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Text style={{ color: colors.foregroundMuted, fontSize: 9, fontWeight: '600' as const }}>
+        <Text
+          style={{
+            color: colors.foregroundMuted,
+            fontSize: FONT_SIZE.sm,
+            fontWeight: FONT_WEIGHT.semibold,
+          }}
+        >
           i
         </Text>
       </Pressable>
@@ -120,11 +133,17 @@ function RowInfo({
             backgroundColor: colors.surface0,
             borderWidth: 1,
             borderColor: colors.border,
-            borderRadius: RADIUS.md,
+            borderRadius: BORDER_RADIUS.md,
             padding: SPACING[2],
           }}
         >
-          <Text style={{ color: colors.foreground, fontSize: FONT_SIZE.sm, lineHeight: 16 }}>
+          <Text
+            style={{
+              color: colors.foreground,
+              fontSize: FONT_SIZE.sm,
+              lineHeight: fieldLineHeight(FONT_SIZE.sm),
+            }}
+          >
             {text}
           </Text>
         </View>
@@ -135,6 +154,7 @@ function RowInfo({
 
 export function MainSurface({ theme }: PluginSurfaceProps) {
   const { colors } = theme;
+  const s = createSettingsStyles(colors as never);
   const save = useRpc(saveSettings);
   const test = useRpc(testVoice);
   const [groqApiKey, setGroqApiKey] = useState('');
@@ -157,27 +177,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
   );
   const selectedLabel = LANGUAGES.find((l) => l.code === language)?.label ?? language;
 
-  const section = { marginBottom: SPACING[6] };
-  const sectionHeader = {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
-    marginBottom: SPACING[3],
-    marginLeft: SPACING[1],
-  };
-  const sectionHeaderTitle = {
-    color: colors.foregroundMuted,
-    fontSize: FONT_SIZE.sm,
-    fontWeight: 'normal' as const,
-  };
   const sectionContent = { gap: SPACING[3] };
-  const card = {
-    backgroundColor: colors.surface1,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden' as const,
-  };
   const row: Record<string, unknown> = {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
@@ -185,14 +185,11 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
     paddingVertical: SPACING[4],
     paddingHorizontal: SPACING[4],
   };
-  const rowBorder = { borderTopWidth: 1, borderTopColor: colors.border };
-  const rowContent = { flex: 1, marginRight: SPACING[3], gap: SPACING[1] };
   const rowTitleRow = {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     gap: SPACING[2],
   };
-  const rowTitle = { color: colors.foreground, fontSize: FONT_SIZE.base };
   const isGroq = provider === 'groq';
 
   const desktopPanel: Record<string, unknown> = {
@@ -200,17 +197,13 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
     top: '100%' as unknown as number,
     marginTop: SPACING[1],
     backgroundColor: colors.surface0,
-    borderRadius: RADIUS.lg,
+    borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden' as const,
     maxHeight: 320,
     zIndex: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    ...SHADOW.lg,
   };
 
   const searchRow = {
@@ -246,18 +239,32 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
       }
     >
       <View style={{ gap: SPACING[1] }}>
-        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700' }}>Voice Hub</Text>
-        <Text style={{ color: colors.foregroundMuted, fontSize: FONT_SIZE.sm, lineHeight: 18 }}>
+        <Text
+          style={{
+            color: colors.foreground,
+            fontSize: FONT_SIZE['2xl'],
+            fontWeight: FONT_WEIGHT.bold,
+          }}
+        >
+          Voice Hub
+        </Text>
+        <Text
+          style={{
+            color: colors.foregroundMuted,
+            fontSize: FONT_SIZE.sm,
+            lineHeight: fieldLineHeight(FONT_SIZE.sm),
+          }}
+        >
           Paste key, choose provider, Save.
         </Text>
       </View>
 
-      <View style={section}>
-        <View style={sectionHeader}>
-          <Text style={sectionHeaderTitle}>Connection</Text>
+      <View style={s.section}>
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionHeaderTitle}>Connection</Text>
         </View>
         <View style={sectionContent}>
-          <View style={card}>
+          <View style={s.card}>
             <View
               style={{
                 paddingVertical: SPACING[4],
@@ -266,7 +273,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
               }}
             >
               <View style={rowTitleRow}>
-                <Text style={rowTitle}>API key</Text>
+                <Text style={s.rowTitle}>API key</Text>
                 <RowInfo
                   colors={colors as never}
                   text="Stored at ~/.paseo/plugins/voice-hub/settings.json. Groq = gsk_..., OpenAI = sk-..."
@@ -283,7 +290,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                     backgroundColor: colors.surface0,
                     borderWidth: 1,
                     borderColor: colors.border,
-                    borderRadius: RADIUS.lg,
+                    borderRadius: BORDER_RADIUS.lg,
                     paddingHorizontal: SPACING[3],
                     paddingVertical: SPACING[3],
                     color: colors.foreground,
@@ -294,10 +301,10 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                 autoCorrect={false}
               />
             </View>
-            <View style={[row, rowBorder] as never}>
+            <View style={[row, s.rowBorder] as never}>
               <View style={{ flex: 1, marginRight: SPACING[3] }}>
                 <View style={rowTitleRow}>
-                  <Text style={rowTitle}>Provider</Text>
+                  <Text style={s.rowTitle}>Provider</Text>
                   <RowInfo
                     colors={colors as never}
                     text="Groq = preconfigured Orpheus + Whisper Turbo via 127.0.0.1:8789. Custom = any OpenAI-compatible URL."
@@ -326,7 +333,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                   } as never
                 }
               >
-                <Text style={rowTitle}>Base URL</Text>
+                <Text style={s.rowTitle}>Base URL</Text>
                 <TextInput
                   value={baseUrl}
                   onChangeText={setBaseUrl}
@@ -337,7 +344,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                       backgroundColor: colors.surface0,
                       borderWidth: 1,
                       borderColor: colors.border,
-                      borderRadius: RADIUS.lg,
+                      borderRadius: BORDER_RADIUS.lg,
                       paddingHorizontal: SPACING[3],
                       paddingVertical: SPACING[3],
                       color: colors.foreground,
@@ -353,12 +360,12 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
         </View>
       </View>
 
-      <View style={section}>
-        <View style={sectionHeader}>
-          <Text style={sectionHeaderTitle}>Listen</Text>
+      <View style={s.section}>
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionHeaderTitle}>Listen</Text>
         </View>
         <View style={sectionContent}>
-          <View style={card}>
+          <View style={s.card}>
             <View
               style={{
                 paddingVertical: SPACING[4],
@@ -367,7 +374,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
               }}
             >
               <View style={rowTitleRow}>
-                <Text style={rowTitle}>Language</Text>
+                <Text style={s.rowTitle}>Language</Text>
                 <RowInfo
                   colors={colors as never}
                   text="Forced for STT — keeps “refaktorera functionen” Swedish. Search any Whisper language."
@@ -380,7 +387,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                     backgroundColor: colors.surface0,
                     borderWidth: 1,
                     borderColor: colors.border,
-                    borderRadius: RADIUS.lg,
+                    borderRadius: BORDER_RADIUS.lg,
                     paddingHorizontal: SPACING[3],
                     paddingVertical: SPACING[3],
                     flexDirection: 'row',
@@ -389,14 +396,16 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                   }}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>
-                    <View style={{ width: 16, alignItems: 'center' }}>
-                      <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>◐</Text>
+                    <View style={{ width: ICON_SIZE.sm, alignItems: 'center' }}>
+                      <Text style={{ color: colors.foregroundMuted, fontSize: FONT_SIZE.sm }}>
+                        ◐
+                      </Text>
                     </View>
                     <Text style={{ color: colors.foreground, fontSize: FONT_SIZE.base }}>
                       {language} — {selectedLabel}
                     </Text>
                   </View>
-                  <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>▼</Text>
+                  <Text style={{ color: colors.foregroundMuted, fontSize: FONT_SIZE.sm }}>▼</Text>
                 </Pressable>
                 {languageOpen && (
                   <View style={{ ...desktopPanel, left: 0, right: 0 } as never}>
@@ -442,7 +451,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                             >
                               <View
                                 style={{
-                                  width: 16,
+                                  width: ICON_SIZE.sm,
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                 }}
@@ -450,7 +459,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                                 <Text
                                   style={{
                                     color: active ? colors.foreground : colors.foregroundMuted,
-                                    fontSize: 12,
+                                    fontSize: FONT_SIZE.sm,
                                   }}
                                 >
                                   ◐
@@ -485,7 +494,9 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                                 </Text>
                               </View>
                               {active && (
-                                <Text style={{ color: colors.foreground, fontSize: 12 }}>✓</Text>
+                                <Text style={{ color: colors.foreground, fontSize: FONT_SIZE.sm }}>
+                                  ✓
+                                </Text>
                               )}
                             </Pressable>
                           );
@@ -507,10 +518,10 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                 )}
               </View>
             </View>
-            <View style={[row, rowBorder] as never}>
-              <View style={rowContent}>
+            <View style={[row, s.rowBorder] as never}>
+              <View style={s.rowContent}>
                 <View style={rowTitleRow}>
-                  <Text style={rowTitle}>STT model</Text>
+                  <Text style={s.rowTitle}>STT model</Text>
                   <RowInfo
                     colors={colors as never}
                     text="Turbo is 8× faster on Groq, ~1% worse WER. Accurate is whisper-large-v3."
@@ -538,7 +549,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                       backgroundColor: colors.surface0,
                       borderWidth: 1,
                       borderColor: colors.border,
-                      borderRadius: RADIUS.lg,
+                      borderRadius: BORDER_RADIUS.lg,
                       paddingHorizontal: SPACING[3],
                       paddingVertical: SPACING[2],
                       color: colors.foreground,
@@ -556,18 +567,18 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
         </View>
       </View>
 
-      <View style={section}>
-        <View style={sectionHeader}>
-          <Text style={sectionHeaderTitle}>Speak</Text>
+      <View style={s.section}>
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionHeaderTitle}>Speak</Text>
         </View>
         <View style={sectionContent}>
-          <View style={card}>
+          <View style={s.card}>
             <View
               style={[row, { paddingVertical: SPACING[4], paddingHorizontal: SPACING[4] } as never]}
             >
-              <View style={rowContent}>
+              <View style={s.rowContent}>
                 <View style={rowTitleRow}>
-                  <Text style={rowTitle}>TTS model</Text>
+                  <Text style={s.rowTitle}>TTS model</Text>
                   <RowInfo
                     colors={colors as never}
                     text={
@@ -597,7 +608,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                       backgroundColor: colors.surface0,
                       borderWidth: 1,
                       borderColor: colors.border,
-                      borderRadius: RADIUS.lg,
+                      borderRadius: BORDER_RADIUS.lg,
                       paddingHorizontal: SPACING[3],
                       paddingVertical: SPACING[2],
                       color: colors.foreground,
@@ -611,10 +622,10 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                 />
               )}
             </View>
-            <View style={[row, rowBorder] as never}>
-              <View style={rowContent}>
+            <View style={[row, s.rowBorder] as never}>
+              <View style={s.rowContent}>
                 <View style={rowTitleRow}>
-                  <Text style={rowTitle}>Voice</Text>
+                  <Text style={s.rowTitle}>Voice</Text>
                   <RowInfo
                     colors={colors as never}
                     text={isGroq ? 'English Orpheus voices.' : 'Voice ID, e.g. alloy.'}
@@ -636,7 +647,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                       backgroundColor: colors.surface0,
                       borderWidth: 1,
                       borderColor: colors.border,
-                      borderRadius: RADIUS.lg,
+                      borderRadius: BORDER_RADIUS.lg,
                       paddingHorizontal: SPACING[3],
                       paddingVertical: SPACING[2],
                       flexDirection: 'row',
@@ -647,14 +658,16 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                     }}
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>
-                      <View style={{ width: 16, alignItems: 'center' }}>
-                        <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>◐</Text>
+                      <View style={{ width: ICON_SIZE.sm, alignItems: 'center' }}>
+                        <Text style={{ color: colors.foregroundMuted, fontSize: FONT_SIZE.sm }}>
+                          ◐
+                        </Text>
                       </View>
                       <Text style={{ color: colors.foreground, fontSize: FONT_SIZE.base }}>
                         {ttsVoice}
                       </Text>
                     </View>
-                    <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>▼</Text>
+                    <Text style={{ color: colors.foregroundMuted, fontSize: FONT_SIZE.sm }}>▼</Text>
                   </Pressable>
                   {voiceOpen && (
                     <View style={{ ...desktopPanel, right: 0, minWidth: 200 } as never}>
@@ -678,11 +691,11 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                                   backgroundColor: active ? colors.surface1 : 'transparent',
                                 }}
                               >
-                                <View style={{ width: 16, alignItems: 'center' }}>
+                                <View style={{ width: ICON_SIZE.sm, alignItems: 'center' }}>
                                   <Text
                                     style={{
                                       color: active ? colors.foreground : colors.foregroundMuted,
-                                      fontSize: 12,
+                                      fontSize: FONT_SIZE.sm,
                                     }}
                                   >
                                     ◐
@@ -705,7 +718,11 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                                   </Text>
                                 </View>
                                 {active && (
-                                  <Text style={{ color: colors.foreground, fontSize: 12 }}>✓</Text>
+                                  <Text
+                                    style={{ color: colors.foreground, fontSize: FONT_SIZE.sm }}
+                                  >
+                                    ✓
+                                  </Text>
                                 )}
                               </Pressable>
                             );
@@ -726,7 +743,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                       backgroundColor: colors.surface0,
                       borderWidth: 1,
                       borderColor: colors.border,
-                      borderRadius: RADIUS.lg,
+                      borderRadius: BORDER_RADIUS.lg,
                       paddingHorizontal: SPACING[3],
                       paddingVertical: SPACING[2],
                       color: colors.foreground,
@@ -744,15 +761,15 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
         </View>
       </View>
 
-      <View style={section}>
-        <View style={sectionHeader}>
-          <Text style={sectionHeaderTitle}>Actions</Text>
+      <View style={s.section}>
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionHeaderTitle}>Actions</Text>
         </View>
         <View style={sectionContent}>
-          <View style={card}>
+          <View style={s.card}>
             <View style={row}>
-              <View style={rowContent}>
-                <Text style={rowTitle}>Save and enable</Text>
+              <View style={s.rowContent}>
+                <Text style={s.rowTitle}>Save and enable</Text>
               </View>
               <Pressable
                 onPress={async () => {
@@ -778,14 +795,14 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                   backgroundColor: colors.accent,
                   paddingHorizontal: SPACING[4],
                   paddingVertical: SPACING[2],
-                  borderRadius: RADIUS.lg,
+                  borderRadius: BORDER_RADIUS.lg,
                   alignItems: 'center',
                 }}
               >
                 <Text
                   style={{
                     color: colors.accentForeground,
-                    fontWeight: '600' as const,
+                    fontWeight: FONT_WEIGHT.semibold,
                     fontSize: FONT_SIZE.base,
                   }}
                 >
@@ -793,9 +810,9 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                 </Text>
               </Pressable>
             </View>
-            <View style={[row, rowBorder] as never}>
-              <View style={rowContent}>
-                <Text style={rowTitle}>Test voice</Text>
+            <View style={[row, s.rowBorder] as never}>
+              <View style={s.rowContent}>
+                <Text style={s.rowTitle}>Test voice</Text>
               </View>
               <Pressable
                 onPress={async () => {
@@ -822,7 +839,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                   backgroundColor: colors.surface0,
                   paddingHorizontal: SPACING[4],
                   paddingVertical: SPACING[2],
-                  borderRadius: RADIUS.lg,
+                  borderRadius: BORDER_RADIUS.lg,
                   borderWidth: 1,
                   borderColor: colors.border,
                   alignItems: 'center',
@@ -831,7 +848,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
                 <Text
                   style={{
                     color: colors.foreground,
-                    fontWeight: '500' as const,
+                    fontWeight: FONT_WEIGHT.medium,
                     fontSize: FONT_SIZE.base,
                   }}
                 >
