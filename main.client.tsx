@@ -1,8 +1,8 @@
 import type { PluginSurfaceProps } from "@getpaseo/plugin";
 import React, { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View, ActivityIndicator } from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { usePaseo } from "@getpaseo/plugin";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { loadSettings, saveSettings, testVoice, testStt } from "./shared";
 
 type Settings = {
@@ -55,9 +55,8 @@ export function MainSurface({ theme, layout }: PluginSurfaceProps) {
   const { data, isFetching } = useQuery({
     queryKey: ["voice-hub", "settings"],
     queryFn: () => paseo.rpc(loadSettings, {}),
-    initialData: { language: "sv" as const, sttModel: "whisper-large-v3-turbo" as const, ttsVoice: "troy" as const },
+    placeholderData: keepPreviousData,
     staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
   });
 
   useEffect(() => {
@@ -103,6 +102,11 @@ export function MainSurface({ theme, layout }: PluginSurfaceProps) {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.scroll}>
+      {isFetching && !data?.groqApiKey && (
+        <View style={[styles.card, { paddingVertical: 8 }]}>
+          <Text style={styles.muted}>Syncing…</Text>
+        </View>
+      )}
       <View style={styles.card}>
         <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}>Voice Hub</Text>
         <Text style={styles.muted}>Friendly hub for better voices — no terminal needed. Add your free Groq key, pick Swedish, and test. Works for everyone, even on a tiny VPS (no local AI needed).</Text>
