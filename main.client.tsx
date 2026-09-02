@@ -1,12 +1,14 @@
 import type { PluginSurfaceProps } from "@getpaseo/plugin";
 import React, { useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { usePaseo } from "@getpaseo/plugin";
+import { useRpc } from "@getpaseo/plugin";
 import { saveSettings, testVoice, testStt } from "./shared";
 
 export function MainSurface({ theme }: PluginSurfaceProps) {
   const { colors } = theme;
-  const paseo = usePaseo();
+  const saveRpc = useRpc(saveSettings);
+  const testVoiceRpc = useRpc(testVoice);
+  const testSttRpc = useRpc(testStt);
   const [groqApiKey, setGroqApiKey] = useState("");
   const [language, setLanguage] = useState<"sv" | "en">("sv");
   const [sttModel, setSttModel] = useState<"whisper-large-v3-turbo" | "whisper-large-v3">("whisper-large-v3-turbo");
@@ -24,7 +26,7 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
 
       <Text style={{ color: colors.foreground, fontWeight: "600" }}>Groq API key</Text>
       <TextInput value={groqApiKey} onChangeText={setGroqApiKey} placeholder="gsk_..." placeholderTextColor={colors.foregroundMuted} secureTextEntry style={{ backgroundColor: colors.surface1, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, color: colors.foreground } as never} autoCapitalize="none" />
-      <View style={{ flexDirection: "row", gap: 8 }}><Pressable onPress={async () => { try { const r = await paseo.rpc(testStt, {}) as { ok: boolean; error?: string }; setMsg({ text: r.ok ? "STT key OK" : r.error || "STT failed", ok: !!r.ok }); } catch (e) { setMsg({ text: e instanceof Error ? e.message : String(e), ok: false }); } }} style={{ backgroundColor: colors.surface2, padding: 10, borderRadius: 8 }}><Text style={{ color: colors.foreground }}>Check key</Text></Pressable></View>
+      <View style={{ flexDirection: "row", gap: 8 }}><Pressable onPress={async () => { try { const r = await testSttRpc({}) as { ok: boolean; error?: string }; setMsg({ text: r.ok ? "STT key OK" : r.error || "STT failed", ok: !!r.ok }); } catch (e) { setMsg({ text: e instanceof Error ? e.message : String(e), ok: false }); } }} style={{ backgroundColor: colors.surface2, padding: 10, borderRadius: 8 }}><Text style={{ color: colors.foreground }}>Check key</Text></Pressable></View>
 
       <Text style={{ color: colors.foreground, fontWeight: "600" }}>Language</Text>
       <View style={{ flexDirection: "row", gap: 8 }}>{(["sv", "en"] as const).map((v) => (
@@ -41,12 +43,12 @@ export function MainSurface({ theme }: PluginSurfaceProps) {
         <Pressable key={v} onPress={() => setTtsVoice(v)} style={chip(ttsVoice === v)}><Text style={chipT(ttsVoice === v)}>{v}</Text></Pressable>
       ))}</View>
 
-      <Pressable onPress={async () => { try { const r = await paseo.rpc(saveSettings, { groqApiKey, language, sttModel, ttsVoice }) as unknown as { _daemonChanged?: boolean }; setMsg({ text: r._daemonChanged ? "Saved! Restarting daemon… ready in 5s." : "Saved!", ok: true }); } catch (e) { setMsg({ text: e instanceof Error ? e.message : String(e), ok: false }); } }} style={{ backgroundColor: colors.accent, padding: 12, borderRadius: 10, alignItems: "center" }}><Text style={{ color: colors.accentForeground, fontWeight: "600" }}>Save and enable</Text></Pressable>
+      <Pressable onPress={async () => { try { const r = await saveRpc({ groqApiKey, language, sttModel, ttsVoice }) as unknown as { _daemonChanged?: boolean }; setMsg({ text: r._daemonChanged ? "Saved! Restarting daemon… ready in 5s." : "Saved!", ok: true }); } catch (e) { setMsg({ text: e instanceof Error ? e.message : String(e), ok: false }); } }} style={{ backgroundColor: colors.accent, padding: 12, borderRadius: 10, alignItems: "center" }}><Text style={{ color: colors.accentForeground, fontWeight: "600" }}>Save and enable</Text></Pressable>
 
       <TextInput value={testText} onChangeText={setTestText} placeholder="Text to speak" multiline style={{ backgroundColor: colors.surface1, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, color: colors.foreground, minHeight: 60 } as never} />
       <View style={{ flexDirection: "row", gap: 8 }}>
-        <Pressable onPress={async () => { try { const r = await paseo.rpc(testVoice, { text: testText, voice: ttsVoice }) as { ok: boolean; bytes?: number; error?: string }; setMsg({ text: r.ok ? `Voice OK ${r.bytes}b` : r.error || "Voice failed", ok: !!r.ok }); } catch (e) { setMsg({ text: e instanceof Error ? e.message : String(e), ok: false }); } }} style={{ backgroundColor: colors.accent, padding: 10, borderRadius: 8 }}><Text style={{ color: colors.accentForeground }}>Test voice</Text></Pressable>
-        <Pressable onPress={async () => { try { const r = await paseo.rpc(testVoice, { text: "Jag vill refaktorera functionen", voice: ttsVoice }) as { ok: boolean; bytes?: number; error?: string }; setMsg({ text: r.ok ? `Voice OK ${r.bytes}b` : r.error || "Voice failed", ok: !!r.ok }); } catch (e) { setMsg({ text: e instanceof Error ? e.message : String(e), ok: false }); } }} style={{ backgroundColor: colors.surface2, padding: 10, borderRadius: 8 }}><Text style={{ color: colors.foreground }}>Test sv+en</Text></Pressable>
+        <Pressable onPress={async () => { try { const r = await testVoiceRpc({ text: testText, voice: ttsVoice }) as { ok: boolean; bytes?: number; error?: string }; setMsg({ text: r.ok ? `Voice OK ${r.bytes}b` : r.error || "Voice failed", ok: !!r.ok }); } catch (e) { setMsg({ text: e instanceof Error ? e.message : String(e), ok: false }); } }} style={{ backgroundColor: colors.accent, padding: 10, borderRadius: 8 }}><Text style={{ color: colors.accentForeground }}>Test voice</Text></Pressable>
+        <Pressable onPress={async () => { try { const r = await testVoiceRpc({ text: "Jag vill refaktorera functionen", voice: ttsVoice }) as { ok: boolean; bytes?: number; error?: string }; setMsg({ text: r.ok ? `Voice OK ${r.bytes}b` : r.error || "Voice failed", ok: !!r.ok }); } catch (e) { setMsg({ text: e instanceof Error ? e.message : String(e), ok: false }); } }} style={{ backgroundColor: colors.surface2, padding: 10, borderRadius: 8 }}><Text style={{ color: colors.foreground }}>Test sv+en</Text></Pressable>
       </View>
 
       {msg && <View style={{ padding: 10, borderRadius: 8, backgroundColor: msg.ok ? "#0f5132" : "#842029" }}><Text style={{ color: "white" }}>{msg.text}</Text></View>}

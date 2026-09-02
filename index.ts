@@ -5,7 +5,7 @@ import { execFile } from "node:child_process";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { MainSurface } from "./main.client";
-import { loadSettings, saveSettings, testVoice, testStt, type VoiceHubSettings } from "./shared";
+import { saveSettings, testVoice, testStt, type VoiceHubSettings } from "./shared";
 
 function execFileAsync(cmd: string, args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -146,11 +146,6 @@ export default function contribute(plugin: PluginContext) {
   plugin.addSurface("main", MainSurface);
   plugin.addSidebarItem({ id: "voice-hub", title: "Voice Hub", icon: "Mic", surface: "main" });
   plugin.addCommandCenterItem({ id: "open-voice-hub", title: "Open Voice Hub", icon: "Mic", keywords: ["voice", "speech", "groq", "stt", "tts"], context: "global", onSelect({ openSurface }) { openSurface("main"); } });
-  plugin.handle(loadSettings, async () => {
-    const s = await readSettings();
-    return s;
-  });
-
   plugin.handle(saveSettings, async ({ groqApiKey, language, sttModel, ttsVoice }) => {
     const trimmed = groqApiKey?.trim();
     if (trimmed && !trimmed.startsWith("gsk_")) throw new Error("Groq key should start with gsk_ — get one at console.groq.com/keys");

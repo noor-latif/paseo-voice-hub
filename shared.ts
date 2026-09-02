@@ -10,12 +10,6 @@ export const VoiceHubSettingsSchema = z.object({
 
 export type VoiceHubSettings = z.output<typeof VoiceHubSettingsSchema>;
 
-export const loadSettings = defineRpc({
-  name: "voice-hub.load-settings",
-  input: z.object({}),
-  output: VoiceHubSettingsSchema,
-});
-
 export const saveSettings = defineRpc({
   name: "voice-hub.save-settings",
   input: VoiceHubSettingsSchema,
