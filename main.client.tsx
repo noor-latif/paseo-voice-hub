@@ -105,6 +105,8 @@ function RowInfo({
     <View style={{ position: 'relative' as const }}>
       <Pressable
         onPress={() => setOpen((v) => !v)}
+        onHoverIn={() => setOpen(true)}
+        onHoverOut={() => setOpen(false)}
         style={{
           width: ICON_SIZE.md,
           height: ICON_SIZE.md,
@@ -127,12 +129,12 @@ function RowInfo({
         </Text>
       </Pressable>
       {open && (
-        <Pressable
-          onPress={() => setOpen(false)}
+        <View
           style={{
             position: 'absolute' as const,
-            top: 20,
-            left: 0,
+            bottom: 24,
+            left: '50%' as unknown as number,
+            transform: [{ translateX: -110 }] as unknown as never,
             zIndex: 20,
             backgroundColor: colors.surface0,
             borderWidth: 1,
@@ -157,7 +159,7 @@ function RowInfo({
           >
             {text}
           </Text>
-        </Pressable>
+        </View>
       )}
     </View>
   );
