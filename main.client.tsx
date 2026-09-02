@@ -1,57 +1,21 @@
 import type { PluginSurfaceProps } from "@getpaseo/plugin";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { usePaseo } from "@getpaseo/plugin";
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { loadSettings, saveSettings, testVoice, testStt } from "./shared";
 
-type Settings = {
-  groqApiKey?: string;
-  language: "sv" | "en";
-  sttModel: "whisper-large-v3-turbo" | "whisper-large-v3";
-  ttsVoice: "autumn" | "diana" | "hannah" | "austin" | "daniel" | "troy";
-};
-
-export function MainSurface({ theme, layout }: PluginSurfaceProps) {
+export function MainSurface({ theme }: PluginSurfaceProps) {
   const { colors } = theme;
-  const compact = layout.compact;
   const paseo = usePaseo();
   const qc = useQueryClient();
-
   const [groqApiKey, setGroqApiKey] = useState("");
-  const [language, setLanguage] = useState<Settings["language"]>("sv");
-  const [sttModel, setSttModel] = useState<Settings["sttModel"]>("whisper-large-v3-turbo");
-  const [ttsVoice, setTtsVoice] = useState<Settings["ttsVoice"]>("troy");
+  const [language, setLanguage] = useState<"sv" | "en">("sv");
+  const [sttModel, setSttModel] = useState<"whisper-large-v3-turbo" | "whisper-large-v3">("whisper-large-v3-turbo");
+  const [ttsVoice, setTtsVoice] = useState<"autumn" | "diana" | "hannah" | "austin" | "daniel" | "troy">("troy");
   const [testText, setTestText] = useState("Hej! Det här är Voice Hub — din röst för kod, på svenska.");
-  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
-  const styles = useMemo(
-    () => ({
-      screen: { flex: 1, backgroundColor: colors.surface0 },
-      scroll: { padding: compact ? 16 : 24, gap: 16 },
-      card: { backgroundColor: colors.surface1, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: colors.border, gap: 12 },
-      label: { color: colors.foreground, fontWeight: "600" as const, fontSize: 14 },
-      muted: { color: colors.foregroundMuted, fontSize: 13, lineHeight: 18 },
-      input: { backgroundColor: colors.surface0, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, color: colors.foreground, fontSize: 14 },
-      row: { flexDirection: "row" as const, gap: 8, flexWrap: "wrap" as const },
-      chip: (active: boolean) => ({
-        paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1,
-        borderColor: active ? colors.accent : colors.border,
-        backgroundColor: active ? colors.accent : colors.surface0,
-      }),
-      chipText: (active: boolean) => ({ color: active ? colors.accentForeground : colors.foreground, fontSize: 13, fontWeight: "500" as const }),
-      button: (primary?: boolean) => ({
-        paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, alignItems: "center" as const,
-        backgroundColor: primary ? colors.accent : colors.surface2,
-        opacity: 1,
-      }),
-      buttonText: (primary?: boolean) => ({ color: primary ? colors.accentForeground : colors.foreground, fontWeight: "600" as const, fontSize: 14 }),
-      banner: (ok: boolean) => ({ padding: 12, borderRadius: 8, backgroundColor: ok ? "#0f5132" : "#842029", borderWidth: 1, borderColor: ok ? "#198754" : "#dc3545" }),
-      bannerText: { color: "white", fontSize: 13 },
-      link: { color: colors.accent, fontSize: 13 },
-    }),
-    [colors, compact],
-  );
   const { data, isFetching } = useQuery({
     queryKey: ["voice-hub", "settings"],
     queryFn: () => paseo.rpc(loadSettings, {}),
@@ -61,120 +25,72 @@ export function MainSurface({ theme, layout }: PluginSurfaceProps) {
 
   useEffect(() => {
     if (data) {
-      setGroqApiKey((prev) => (data.groqApiKey !== undefined ? data.groqApiKey || "" : prev));
+      if (data.groqApiKey !== undefined) setGroqApiKey(data.groqApiKey || "");
       setLanguage(data.language);
       setSttModel(data.sttModel);
       setTtsVoice(data.ttsVoice);
     }
   }, [data]);
 
-  const saveMut = useMutation({
-    mutationFn: (s: Settings) => paseo.rpc(saveSettings, s) as Promise<Settings & { _daemonChanged?: boolean; _needsRestart?: boolean }>,
-    onSuccess: (r) => {
+  const save = useMutation({
+    mutationFn: (s: { groqApiKey?: string; language: "sv" | "en"; sttModel: "whisper-large-v3-turbo" | "whisper-large-v3"; ttsVoice: "autumn" | "diana" | "hannah" | "austin" | "daniel" | "troy" }) => paseo.rpc(saveSettings, s),
+    onSuccess: (r: unknown) => {
       qc.invalidateQueries({ queryKey: ["voice-hub", "settings"] });
-      if ((r as unknown as { _daemonChanged?: boolean })._daemonChanged) {
-        setMessage({ text: "Saved! Restarting Paseo daemon… voice button ready in ~5s. Test voice after.", ok: true });
-      } else {
-        setMessage({ text: "Saved! Voice Hub is ready. Try Test voice below.", ok: true });
-      }
+      const changed = (r as { _daemonChanged?: boolean })._daemonChanged;
+      setMsg({ text: changed ? "Saved! Restarting daemon… ready in 5s." : "Saved!", ok: true });
     },
-    onError: (e: unknown) => setMessage({ text: e instanceof Error ? e.message : String(e), ok: false }),
+    onError: (e: unknown) => setMsg({ text: e instanceof Error ? e.message : String(e), ok: false }),
   });
-  const voiceMut = useMutation({
+
+  const voice = useMutation({
     mutationFn: (v: { text: string; voice: string }) => paseo.rpc(testVoice, v),
-    onSuccess: (r: { ok: boolean; bytes?: number; error?: string }) => {
-      if (r.ok) setMessage({ text: `Voice OK — ${r.bytes} bytes wav. If you heard nothing, check volume.`, ok: true });
-      else setMessage({ text: r.error || "Voice failed", ok: false });
-    },
-    onError: (e: unknown) => setMessage({ text: e instanceof Error ? e.message : String(e), ok: false }),
+    onSuccess: (r: { ok: boolean; bytes?: number; error?: string }) => setMsg({ text: r.ok ? `Voice OK ${r.bytes}b` : r.error || "Voice failed", ok: !!r.ok }),
+    onError: (e: unknown) => setMsg({ text: e instanceof Error ? e.message : String(e), ok: false }),
   });
 
-  const sttMut = useMutation({
+  const stt = useMutation({
     mutationFn: () => paseo.rpc(testStt, {}),
-    onSuccess: (r: { ok: boolean; error?: string }) => {
-      if (r.ok) setMessage({ text: "STT key OK — Groq sees your model.", ok: true });
-      else setMessage({ text: r.error || "STT failed", ok: false });
-    },
-    onError: (e: unknown) => setMessage({ text: e instanceof Error ? e.message : String(e), ok: false }),
+    onSuccess: (r: { ok: boolean; error?: string }) => setMsg({ text: r.ok ? "STT key OK" : r.error || "STT failed", ok: !!r.ok }),
+    onError: (e: unknown) => setMsg({ text: e instanceof Error ? e.message : String(e), ok: false }),
   });
 
-  const isSaving = saveMut.isPending || voiceMut.isPending || sttMut.isPending;
+  const chip = (active: boolean) => ({ padding: 8, borderRadius: 20, borderWidth: 1, borderColor: active ? colors.accent : colors.border, backgroundColor: active ? colors.accent : colors.surface0 });
+  const chipT = (active: boolean) => ({ color: active ? colors.accentForeground : colors.foreground, fontSize: 13 });
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.scroll}>
-      {isFetching && !data?.groqApiKey && (
-        <View style={[styles.card, { paddingVertical: 8 }]}>
-          <Text style={styles.muted}>Syncing…</Text>
-        </View>
-      )}
-      <View style={styles.card}>
-        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}>Voice Hub</Text>
-        <Text style={styles.muted}>Friendly hub for better voices — no terminal needed. Add your free Groq key, pick Swedish, and test. Works for everyone, even on a tiny VPS (no local AI needed).</Text>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.surface0, padding: 16, gap: 12 } as never}>
+      {isFetching && !data && <Text style={{ color: colors.foregroundMuted }}>Syncing…</Text>}
+      <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}>Voice Hub</Text>
+      <Text style={{ color: colors.foregroundMuted }}>Paste free Groq key (console.groq.com/keys, gsk_…), Save — voice button works. No terminal.</Text>
+
+      <Text style={{ color: colors.foreground, fontWeight: "600" }}>Groq API key</Text>
+      <TextInput value={groqApiKey} onChangeText={setGroqApiKey} placeholder="gsk_..." placeholderTextColor={colors.foregroundMuted} secureTextEntry style={{ backgroundColor: colors.surface1, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, color: colors.foreground } as never} autoCapitalize="none" />
+      <View style={{ flexDirection: "row", gap: 8 }}><Pressable onPress={() => stt.mutate()} style={{ backgroundColor: colors.surface2, padding: 10, borderRadius: 8 }}><Text style={{ color: colors.foreground }}>{stt.isPending ? "..." : "Check key"}</Text></Pressable></View>
+
+      <Text style={{ color: colors.foreground, fontWeight: "600" }}>Language</Text>
+      <View style={{ flexDirection: "row", gap: 8 }}>{(["sv", "en"] as const).map((v) => (
+        <Pressable key={v} onPress={() => setLanguage(v)} style={chip(language === v)}><Text style={chipT(language === v)}>{v}</Text></Pressable>
+      ))}</View>
+
+      <Text style={{ color: colors.foreground, fontWeight: "600" }}>STT</Text>
+      <View style={{ flexDirection: "row", gap: 8 }}>{(["whisper-large-v3-turbo", "whisper-large-v3"] as const).map((v) => (
+        <Pressable key={v} onPress={() => setSttModel(v)} style={chip(sttModel === v)}><Text style={chipT(sttModel === v)}>{v === "whisper-large-v3-turbo" ? "Turbo" : "Accurate"}</Text></Pressable>
+      ))}</View>
+
+      <Text style={{ color: colors.foreground, fontWeight: "600" }}>Voice</Text>
+      <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" as never }}>{(["troy", "hannah", "autumn", "diana", "austin", "daniel"] as const).map((v) => (
+        <Pressable key={v} onPress={() => setTtsVoice(v)} style={chip(ttsVoice === v)}><Text style={chipT(ttsVoice === v)}>{v}</Text></Pressable>
+      ))}</View>
+
+      <Pressable onPress={() => save.mutate({ groqApiKey, language, sttModel, ttsVoice })} style={{ backgroundColor: colors.accent, padding: 12, borderRadius: 10, alignItems: "center" }}><Text style={{ color: colors.accentForeground, fontWeight: "600" }}>{save.isPending ? "Saving…" : "Save and enable"}</Text></Pressable>
+
+      <TextInput value={testText} onChangeText={setTestText} placeholder="Text to speak" multiline style={{ backgroundColor: colors.surface1, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, color: colors.foreground, minHeight: 60 } as never} />
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <Pressable onPress={() => voice.mutate({ text: testText, voice: ttsVoice })} style={{ backgroundColor: colors.accent, padding: 10, borderRadius: 8 }}><Text style={{ color: colors.accentForeground }}>{voice.isPending ? "..." : "Test voice"}</Text></Pressable>
+        <Pressable onPress={() => voice.mutate({ text: "Jag vill refaktorera functionen", voice: ttsVoice })} style={{ backgroundColor: colors.surface2, padding: 10, borderRadius: 8 }}><Text style={{ color: colors.foreground }}>Test sv+en</Text></Pressable>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.label}>1. Groq API key (free)</Text>
-        <Text style={styles.muted}>Get one in 30s at console.groq.com/keys → Create API Key (starts with gsk_). We store it safely on your Paseo machine (600 perms), never in git.</Text>
-        <TextInput value={groqApiKey} onChangeText={setGroqApiKey} placeholder="gsk_..." placeholderTextColor={colors.foregroundMuted} secureTextEntry style={styles.input} autoCapitalize="none" autoCorrect={false} />
-        <View style={styles.row}>
-          <Pressable onPress={() => sttMut.mutate()} style={styles.button()}><Text style={styles.buttonText()}>{sttMut.isPending ? "Checking…" : "Check key"}</Text></Pressable>
-        </View>
-        <Text style={styles.muted}>Free tier is enough to start. No credit card for STT/TTS at Groq.</Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.label}>2. Language</Text>
-        <Text style={styles.muted}>We force this for Groq so mixed Swedish + English tech like "refaktorera functionen" stays Swedish. Your AI can still fix the ~1% extra errors from turbo.</Text>
-        <View style={styles.row}>
-          {(["sv", "en"] as const).map((v) => (
-            <Pressable key={v} onPress={() => setLanguage(v)} style={styles.chip(language === v)}><Text style={styles.chipText(language === v)}>{v === "sv" ? "Svenska (sv)" : "English (en)"}</Text></Pressable>
-          ))}
-        </View>
-
-        <Text style={styles.label}>STT speed vs accuracy</Text>
-        <View style={styles.row}>
-          {(["whisper-large-v3-turbo", "whisper-large-v3"] as const).map((v) => (
-            <Pressable key={v} onPress={() => setSttModel(v)} style={styles.chip(sttModel === v)}><Text style={styles.chipText(sttModel === v)}>{v === "whisper-large-v3-turbo" ? "Turbo (fast, we recommend)" : "Accurate (slower)"}</Text></Pressable>
-          ))}
-        </View>
-        <Text style={styles.muted}>Turbo is 8× faster on Groq LPU, WER only ~1% worse — your coding agent fills the gaps.</Text>
-
-        <Text style={styles.label}>Voice</Text>
-        <View style={styles.row}>
-          {(["troy", "hannah", "autumn", "diana", "austin", "daniel"] as const).map((v) => (
-            <Pressable key={v} onPress={() => setTtsVoice(v)} style={styles.chip(ttsVoice === v)}><Text style={styles.chipText(ttsVoice === v)}>{v}</Text></Pressable>
-          ))}
-        </View>
-        <Text style={styles.muted}>English Orpheus voices on Groq. For Swedish speech, Orpheus is English-only — we keep it English for now.</Text>
-      </View>
-
-      <View style={styles.card}>
-        <Pressable
-          onPress={() => saveMut.mutate({ groqApiKey, language, sttModel, ttsVoice })}
-          style={styles.button(true)}
-        >
-          <Text style={styles.buttonText(true)}>{saveMut.isPending ? "Saving…" : "Save and enable"}</Text>
-        </Pressable>
-        <Text style={styles.muted}>Saves to ~/.paseo/plugins/voice-hub/settings.json (safe). Daemon proxy restarts automatically.</Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.label}>3. Test</Text>
-        <TextInput value={testText} onChangeText={setTestText} placeholder="Text to speak" placeholderTextColor={colors.foregroundMuted} multiline style={[styles.input, { minHeight: 60, textAlignVertical: "top" }]} />
-        <View style={styles.row}>
-          <Pressable onPress={() => voiceMut.mutate({ text: testText, voice: ttsVoice })} style={styles.button(true)}><Text style={styles.buttonText(true)}>{voiceMut.isPending ? "Testing…" : "Test voice"}</Text></Pressable>
-          <Pressable onPress={() => voiceMut.mutate({ text: "Jag vill refaktorera functionen till att använda async await", voice: ttsVoice })} style={styles.button()}><Text style={styles.buttonText()}>Test sv+en mix</Text></Pressable>
-        </View>
-        <Text style={styles.muted}>This calls Groq directly — if it says "bytes", your Paseo voice button will work in app.paseo.sh. No terminal needed.</Text>
-      </View>
-
-      {message && (
-        <View style={styles.banner(message.ok)}><Text style={styles.bannerText}>{message.text}</Text></View>
-      )}
-
-      <View style={styles.card}>
-        <Text style={styles.muted}>After Save: dictation → Groq whisper-large-v3-turbo (sv forced), TTS → http://127.0.0.1:8789 via plugin → Groq orpheus. No local AI models, perfect for tiny VPS. No PASEO_PASSWORD needed on fresh desktop — only on headless VPS where daemon has a password.</Text>
-      </View>
+      {msg && <View style={{ padding: 10, borderRadius: 8, backgroundColor: msg.ok ? "#0f5132" : "#842029" }}><Text style={{ color: "white" }}>{msg.text}</Text></View>}
     </ScrollView>
   );
 }
