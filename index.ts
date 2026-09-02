@@ -1,126 +1,181 @@
 import type { PluginContext } from "@getpaseo/plugin";
 import { createServer, type Server } from "node:http";
+import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join, dirname } from "node:path";
 import { MainSurface } from "./main.client";
+import { loadSettings, saveSettings, testVoice, testStt, type VoiceHubSettings } from "./shared";
 
 const PROXY_PORT = 8789;
-const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || process.env.OPENAI_TTS_API_KEY || "";
 const GROQ_BASE = "https://api.groq.com/openai/v1";
+const PLUGIN_ID = "voice-hub";
 
-const ORPHEUS_VOICES: Record<string, true> = {
-  autumn: true,
-  diana: true,
-  hannah: true,
-  austin: true,
-  daniel: true,
-  troy: true,
+function paseoHome(): string {
+  return process.env.PASEO_HOME ?? join(homedir(), ".paseo");
+}
+
+function settingsPath(): string {
+  return join(paseoHome(), "plugins", PLUGIN_ID, "settings.json");
+}
+
+const DEFAULTS: VoiceHubSettings = {
+  language: "sv",
+  sttModel: "whisper-large-v3-turbo",
+  ttsVoice: "troy",
 };
 
-const OPENAI_VOICES: Record<string, true> = {
-  alloy: true,
-  echo: true,
-  fable: true,
-  onyx: true,
-  nova: true,
-  shimmer: true,
-};
+async function readSettings(): Promise<VoiceHubSettings> {
+  try {
+    const raw = await readFile(settingsPath(), "utf8");
+    const parsed = JSON.parse(raw);
+    const withDefaults: VoiceHubSettings = { ...DEFAULTS, ...parsed };
+    if (!withDefaults.groqApiKey || withDefaults.groqApiKey.trim() === "") {
+      const envKey = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || process.env.OPENAI_TTS_API_KEY || "";
+      if (envKey) withDefaults.groqApiKey = envKey;
+    }
+    return withDefaults;
+  } catch {
+    const envKey = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || process.env.OPENAI_TTS_API_KEY || "";
+    if (envKey) return { ...DEFAULTS, groqApiKey: envKey };
+    return { ...DEFAULTS };
+  }
+}
+
+async function writeSettings(settings: VoiceHubSettings): Promise<VoiceHubSettings> {
+  const path = settingsPath();
+  await mkdir(dirname(path), { recursive: true });
+  const toSave: Record<string, unknown> = { ...settings };
+  if (!toSave.groqApiKey || (toSave.groqApiKey as string).trim() === "") delete toSave.groqApiKey;
+  await writeFile(path, JSON.stringify(toSave, null, 2) + "\n", { mode: 0o600 });
+  try {
+    await chmod(path, 0o600);
+  } catch {}
+  return settings;
+}
 
 function mapVoice(inputVoice?: string): string {
+  const allowed: Record<string, true> = { autumn: true, diana: true, hannah: true, austin: true, daniel: true, troy: true };
   const v = (inputVoice || "troy").toLowerCase();
-  if (ORPHEUS_VOICES[v]) return v;
-  if (OPENAI_VOICES[v]) return "troy";
+  if (allowed[v]) return v;
   return "troy";
 }
 
 export default function contribute(plugin: PluginContext) {
   plugin.addSurface("main", MainSurface);
 
+  plugin.handle(loadSettings, async () => {
+    const s = await readSettings();
+    return s;
+  });
+
+  plugin.handle(saveSettings, async ({ groqApiKey, language, sttModel, ttsVoice }) => {
+    const trimmed = groqApiKey?.trim();
+    if (trimmed && !trimmed.startsWith("gsk_")) throw new Error("Groq key should start with gsk_ — get one at console.groq.com/keys");
+    const next: VoiceHubSettings = { groqApiKey: trimmed || undefined, language, sttModel, ttsVoice };
+    await writeSettings(next);
+    console.log(`[voice-hub] saved settings language=${language} stt=${sttModel} tts=${ttsVoice} key=${trimmed ? "set" : "cleared"}`);
+    return next;
+  });
+
+  plugin.handle(testVoice, async ({ text, voice }) => {
+    const s = await readSettings();
+    const key = s.groqApiKey || process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || process.env.OPENAI_TTS_API_KEY || "";
+    if (!key) return { ok: false, error: "No Groq API key saved — paste one first." };
+    const v = mapVoice(voice || s.ttsVoice);
+    const res = await fetch(`${GROQ_BASE}/audio/speech`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "canopylabs/orpheus-v1-english", input: text, voice: v, response_format: "wav" }),
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      return { ok: false, error: `Groq ${res.status}: ${t.slice(0, 300)}` };
+    }
+    const buf = await res.arrayBuffer();
+    return { ok: true, bytes: buf.byteLength };
+  });
+
+  plugin.handle(testStt, async () => {
+    const s = await readSettings();
+    const key = s.groqApiKey || process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || process.env.OPENAI_STT_API_KEY || "";
+    if (!key) return { ok: false, error: "No Groq API key saved." };
+    const res = await fetch(`${GROQ_BASE}/models`, { headers: { Authorization: `Bearer ${key}` } });
+    if (!res.ok) return { ok: false, error: `Key check failed ${res.status}` };
+    const j = (await res.json()) as { data: { id: string }[] };
+    const hasTurbo = j.data.some((m) => m.id === s.sttModel || m.id === "whisper-large-v3-turbo");
+    if (!hasTurbo) return { ok: false, error: `Model ${s.sttModel} not visible` };
+    return { ok: true };
+  });
+
   let server: Server | null = null;
 
-  const start = () => {
+  const startProxy = async () => {
+    const s = await readSettings();
+    const keyFromSettings = s.groqApiKey;
     server = createServer(async (req, res) => {
       if (req.method === "GET" && req.url === "/health") {
+        const cur = await readSettings();
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ ok: true, proxy: "orpheus", port: PROXY_PORT }));
+        res.end(JSON.stringify({ ok: true, proxy: "orpheus", port: PROXY_PORT, hasKey: !!cur.groqApiKey, voice: cur.ttsVoice }));
         return;
       }
       if (req.method !== "POST" || !req.url?.startsWith("/v1/audio/speech")) {
         res.writeHead(404, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: { message: "Not found", type: "invalid_request_error" } }));
+        res.end(JSON.stringify({ error: { message: "Not found" } }));
         return;
       }
-
       let body = "";
-      req.on("data", (chunk) => (body += chunk));
+      req.on("data", (c) => (body += c));
       req.on("end", async () => {
         try {
           const parsed = JSON.parse(body || "{}");
           const input: string = parsed.input || parsed.text || "";
-          if (!input || input.trim().length === 0) {
+          if (!input.trim()) {
             res.writeHead(400, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ error: { message: "input is required", type: "invalid_request_error" } }));
+            res.end(JSON.stringify({ error: { message: "input is required" } }));
             return;
           }
-          const voice = mapVoice(parsed.voice);
-          const apiKey = process.env.GROQ_API_KEY || process.env.OPENAI_TTS_API_KEY || process.env.OPENAI_API_KEY || GROQ_API_KEY;
-          if (!apiKey) {
+          const curSettings = await readSettings();
+          const key = curSettings.groqApiKey || process.env.GROQ_API_KEY || process.env.OPENAI_TTS_API_KEY || process.env.OPENAI_API_KEY || keyFromSettings || "";
+          if (!key) {
             res.writeHead(500, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ error: { message: "GROQ_API_KEY not configured in plugin env", type: "server_error" } }));
+            res.end(JSON.stringify({ error: { message: "No Groq API key — open Voice Hub in Paseo to paste one." } }));
             return;
           }
-
+          const voice = mapVoice(parsed.voice || curSettings.ttsVoice);
           const groqRes = await fetch(`${GROQ_BASE}/audio/speech`, {
             method: "POST",
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "canopylabs/orpheus-v1-english",
-              input,
-              voice,
-              response_format: "wav",
-            }),
+            headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ model: "canopylabs/orpheus-v1-english", input, voice, response_format: "wav" }),
           });
-
           if (!groqRes.ok) {
-            const errText = await groqRes.text();
-            console.error(`[orpheus-proxy] Groq error ${groqRes.status}: ${errText}`);
+            const t = await groqRes.text();
+            console.error(`[voice-hub] Groq ${groqRes.status}: ${t.slice(0, 400)}`);
             res.writeHead(groqRes.status, { "Content-Type": "application/json" });
-            res.end(errText);
+            res.end(t);
             return;
           }
-
           const wav = Buffer.from(await groqRes.arrayBuffer());
-          console.log(`[orpheus-proxy] ${input.slice(0, 60)} -> ${wav.length} bytes voice=${voice}`);
-          res.writeHead(200, {
-            "Content-Type": "audio/wav",
-            "Content-Length": wav.length,
-          });
+          console.log(`[voice-hub] ${input.slice(0, 50)} -> ${wav.length}b voice=${voice}`);
+          res.writeHead(200, { "Content-Type": "audio/wav", "Content-Length": wav.length });
           res.end(wav);
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
-          console.error(`[orpheus-proxy] error: ${msg}`);
+          console.error(`[voice-hub] proxy error: ${msg}`);
           res.writeHead(500, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: { message: msg, type: "server_error" } }));
+          res.end(JSON.stringify({ error: { message: msg } }));
         }
       });
     });
-
     server.listen(PROXY_PORT, "127.0.0.1", () => {
-      console.log(`[orpheus-proxy] listening on http://127.0.0.1:${PROXY_PORT}/v1/audio/speech -> Groq canopylabs/orpheus-v1-english`);
-    });
-
-    server.on("error", (err) => {
-      console.error(`[orpheus-proxy] server error: ${err}`);
+      console.log(`[voice-hub] proxy listening http://127.0.0.1:${PROXY_PORT}/v1/audio/speech -> Groq orpheus (hasKey=${!!s.groqApiKey})`);
     });
   };
 
-  start();
+  void startProxy();
 
   return async () => {
-    if (server) {
-      await new Promise<void>((resolve) => server!.close(() => resolve()));
-      console.log("[orpheus-proxy] stopped");
-    }
+    if (server) await new Promise<void>((r) => server!.close(() => r()));
+    console.log("[voice-hub] stopped");
   };
 }
