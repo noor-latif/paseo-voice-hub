@@ -2,13 +2,16 @@ import type { PluginContext } from "@getpaseo/plugin";
 import { createServer, type Server } from "node:http";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { MainSurface } from "./main.client";
 import { loadSettings, saveSettings, testVoice, testStt, type VoiceHubSettings } from "./shared";
 
-const execFileAsync = promisify(execFile);
+function execFileAsync(cmd: string, args: string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    execFile(cmd, args, (err) => (err ? reject(err) : resolve()));
+  });
+}
 const PROXY_PORT = 8789;
 const GROQ_BASE = "https://api.groq.com/openai/v1";
 const PLUGIN_ID = "voice-hub";
