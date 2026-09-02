@@ -22,5 +22,5 @@
     "typescript-eslint": "^8.69.0",
     "zod": "^4.4.3"
   },
-  "description": "Friendly hub for better voices - Groq Whisper Turbo SV STT + Orpheus TTS via proxy"
+  "description": "Voice hub. The gateway for bringing your own voice cloud API"
 }

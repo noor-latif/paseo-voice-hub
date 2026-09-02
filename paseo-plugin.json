@@ -1,3 +1,4 @@
 {
-  "id": "voice-hub"
+  "id": "voice-hub",
+  "description": "Voice hub. The gateway for bringing your own voice cloud API"
 }
