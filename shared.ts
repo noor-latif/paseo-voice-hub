@@ -5,6 +5,7 @@ export const VoiceHubSettingsSchema = z.object({
   groqApiKey: z.string().trim().min(1).optional(),
   language: z.enum(["sv", "en"]).default("sv"),
   sttModel: z.enum(["whisper-large-v3-turbo", "whisper-large-v3"]).default("whisper-large-v3-turbo"),
+  ttsModel: z.enum(["tts-1", "tts-1-hd"]).default("tts-1"),
   ttsVoice: z.enum(["autumn", "diana", "hannah", "austin", "daniel", "troy"]).default("troy"),
 });
 
