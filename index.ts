@@ -144,7 +144,8 @@ function mapVoice(inputVoice?: string): string {
 
 export default function contribute(plugin: PluginContext) {
   plugin.addSurface("main", MainSurface);
-
+  plugin.addSidebarItem({ id: "voice-hub", title: "Voice Hub", icon: "Mic", surface: "main" });
+  plugin.addCommandCenterItem({ id: "open-voice-hub", title: "Open Voice Hub", icon: "Mic", keywords: ["voice", "speech", "groq", "stt", "tts"], context: "global", onSelect({ openSurface }) { openSurface("main"); } });
   plugin.handle(loadSettings, async () => {
     const s = await readSettings();
     return s;
