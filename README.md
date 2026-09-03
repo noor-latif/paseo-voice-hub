@@ -2,7 +2,7 @@
 
 Friendly hub for better voices in Paseo — no terminal, no AI models on your VPS. Beginner-friendly.
 
-> **You don't need to edit any config files.** Open Paseo, paste a free Groq key, tap Save — your voice button works.
+> **You don't need to edit any config files.** Open Paseo, paste a free Groq key, tap **Save and enable** — your voice button works.
 
 ![Voice Hub wizard: Groq key, language Swedish, turbo, voice troy, Test voice](docs/screenshot.png)
 
@@ -10,8 +10,8 @@ Friendly hub for better voices in Paseo — no terminal, no AI models on your VP
 
 | Feature           | What it does                                                               | Why it's better                                                                        |
 | ----------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| **Dictation STT** | Groq `whisper-large-v3-turbo` on LPU                                       | <250ms, ~9× cheaper than OpenAI, forced `sv` so `refaktorera functionen` stays Swedish |
-| **Voice TTS**     | Groq `canopylabs/orpheus-v1-english` via tiny local proxy `127.0.0.1:8789` | Zero local RAM — perfect for 7.8 Gi VPS — survives `paseo update`                      |
+| **Dictation STT** | Groq `whisper-large-v3-turbo` on LPU                                       | <250ms, ~9× cheaper than OpenAI; turbo is 8× faster, accurate mode for precision       |
+| **Voice TTS**     | Groq `canopylabs/orpheus-v1-english` via tiny local proxy `127.0.0.1:8789` | Zero local RAM — perfect for 7.8 Gi VPS — survives `paseo update`                        |
 
 Mixing `sv + en` tech? Keep `Svenska`, Turbo's ~1% extra WER on `åäö` is fixed by your coding agent.
 

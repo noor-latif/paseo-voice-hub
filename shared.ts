@@ -27,3 +27,9 @@ export const testVoice = defineRpc({
   }),
   output: z.object({ ok: z.boolean(), bytes: z.number().optional(), error: z.string().optional() }),
 });
+
+export const getSettings = defineRpc({
+  name: 'voice-hub.get-settings',
+  input: z.object({}),
+  output: VoiceHubSettingsSchema,
+});

@@ -1,7 +1,7 @@
 import type { PluginContext } from '@getpaseo/plugin';
 import type { Server } from 'node:http';
 import { MainSurface } from './main.client';
-import { saveSettings, testVoice, type VoiceHubSettings } from './shared';
+import { getSettings, saveSettings, testVoice, type VoiceHubSettings } from './shared';
 import { createVoiceHubStore } from './store';
 import { createVoiceHubService } from './service';
 
@@ -21,6 +21,8 @@ export default function contribute(plugin: PluginContext) {
       openSurface('main');
     },
   });
+
+  plugin.handle(getSettings, async () => store.get());
 
   plugin.handle(
     saveSettings,
@@ -52,7 +54,6 @@ export default function contribute(plugin: PluginContext) {
     const settings = await store.get();
     return service.testVoice(settings, text, voice);
   });
-
   let server: Server | null = null;
 
   void service

@@ -1,3 +1,8 @@
+// Vendor copy of paseo/packages/app/src/styles/theme.ts @ de11ed0
+// — only the static token literals that plugins can't inherit.
+// Delete when PluginTheme exposes them (see app/plugins/theme.ts).
+// Keep names/order identical to host for future `s/..\/theme/..\/theme/` moves.
+
 export const SPACING = {
   0: 0,
   0.5: 2,
@@ -52,24 +57,6 @@ export const FONT_WEIGHT = {
 export const OPACITY = { 0: 0, 50: 0.5, 100: 1 } as const;
 
 export const LINE_HEIGHT = { diff: 22 } as const;
-
-export const CONTROL_HEIGHTS = { tight: 28, compact: 32, field: 44 } as const;
-
-export const TIGHT_CONTROL_HEIGHT = 28;
-export const COMPACT_CONTROL_HEIGHT = 32;
-export const FIELD_CONTROL_HEIGHT = 44;
-
-export function fieldLineHeight(fontSize: number): number {
-  return Math.round(fontSize * 1.4);
-}
-
-export function fieldVerticalPadding(
-  controlHeight: number,
-  lineHeight: number,
-  borderWidth: number
-): number {
-  return (controlHeight - lineHeight - borderWidth * 2) / 2;
-}
 
 export const SHADOW = {
   sm: {

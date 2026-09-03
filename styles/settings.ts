@@ -1,4 +1,9 @@
-import { BORDER_RADIUS, BORDER_WIDTH, FONT_SIZE, FONT_WEIGHT, SPACING } from './design-tokens';
+// Vendor copy of paseo/packages/app/src/styles/settings.ts @ de11ed0
+// Host uses StyleSheet.create((theme)=>...), plugin can't — plain factory
+// with PluginColors (11 colors from PluginTheme) is the closest mirror.
+// Delete when host exposes Settings primitives via @getpaseo/plugin/ui.
+
+import { BORDER_RADIUS, BORDER_WIDTH, FONT_SIZE, FONT_WEIGHT, SPACING } from '../theme';
 
 export interface PluginColors {
   surface0: string;
